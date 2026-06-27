@@ -40,6 +40,12 @@ export const envSchema = z.object({
     .default('true')
     .transform((v) => v === 'true'),
 
+  // WhatsApp Business (Cloud API). When unset, sends are logged (dev) not sent.
+  WHATSAPP_TOKEN: z.string().optional(),
+  WHATSAPP_PHONE_ID: z.string().optional(),
+  WHATSAPP_VERIFY_TOKEN: z.string().default('travelos-verify'),
+  WHATSAPP_WEBHOOK_SECRET: z.string().optional(),
+
   // AI providers. When no key is set, a deterministic stub provider is used.
   AI_DEFAULT_PROVIDER: z.enum(['openai', 'gemini', 'stub']).default('stub'),
   OPENAI_API_KEY: z.string().optional(),

@@ -37,7 +37,9 @@ DECLARE
     -- Email automation (Phase 2)
     'email_template', 'email_log', 'automation',
     -- AI layer (Phase 2)
-    'ai_insight', 'ai_extracted_requirement', 'ai_job'
+    'ai_insight', 'ai_extracted_requirement', 'ai_job',
+    -- WhatsApp / conversations (Phase 2)
+    'conversation', 'message'
   ];
 BEGIN
   FOREACH t IN ARRAY strict_tables LOOP

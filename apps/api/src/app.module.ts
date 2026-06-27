@@ -23,6 +23,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
 import { QuotationsModule } from './modules/quotations/quotations.module';
 import { EmailModule } from './modules/email/email.module';
 import { AiModule } from './modules/ai/ai.module';
+import { WhatsAppModule } from './modules/whatsapp/whatsapp.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { AiModule } from './modules/ai/ai.module';
     QuotationsModule, // Phase 2
     EmailModule, // Phase 2
     AiModule, // Phase 2
+    WhatsAppModule, // Phase 2
   ],
   providers: [
     // Guard order: rate-limit → authenticate → authorize.

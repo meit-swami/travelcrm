@@ -193,6 +193,47 @@ enum AiInsightKind {
   mgmt_insight
 }
 
+enum ConversationChannel {
+  whatsapp
+  email
+  sms
+}
+
+enum ConversationStatus {
+  open
+  closed
+  archived
+}
+
+enum MessageDirection {
+  inbound
+  outbound
+}
+
+enum MessageContentType {
+  text
+  image
+  audio
+  video
+  document
+  location
+  template
+}
+
+enum MessageStatus {
+  queued
+  sent
+  delivered
+  read
+  failed
+}
+
+enum IntegrationEventStatus {
+  received
+  processed
+  failed
+}
+
 // ─────────────────────────────── Models ──────────────────────────────
 
 model Tenant {
@@ -237,6 +278,9 @@ model Tenant {
   aiInsights      AiInsight[]
   aiRequirements  AiExtractedRequirement[]
   aiJobs          AiJob[]
+  conversations   Conversation[]
+  messages        Message[]
+  integrationEvents IntegrationEvent[]
 
   @@map("tenant")
 }
@@ -555,6 +599,7 @@ model Lead {
   quotations     Quotation[]
   aiInsights     AiInsight[]
   aiRequirements AiExtractedRequirement[]
+  conversations  Conversation[]
 
   @@unique([tenantId, referenceCode])
   @@index([tenantId, stage])
@@ -845,6 +890,69 @@ model AiJob {
 
   @@index([tenantId, kind])
   @@map("ai_job")
+}
+
+// ─────────────────── WhatsApp / Conversations (Phase 2, Module 5) ───────────────────
+
+model Conversation {
+  id            String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String              @map("tenant_id") @db.Uuid
+  leadId        String?             @map("lead_id") @db.Uuid
+  channel       ConversationChannel
+  externalId    String?             @map("external_id")
+  contactHandle String              @map("contact_handle")
+  lastMessageAt DateTime?           @map("last_message_at")
+  unreadCount   Int                 @default(0) @map("unread_count")
+  status        ConversationStatus  @default(open)
+  createdAt     DateTime            @default(now()) @map("created_at")
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead     Lead?     @relation(fields: [leadId], references: [id])
+  messages Message[]
+
+  @@unique([tenantId, channel, contactHandle])
+  @@index([tenantId, lastMessageAt])
+  @@map("conversation")
+}
+
+model Message {
+  id             String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String             @map("tenant_id") @db.Uuid
+  conversationId String             @map("conversation_id") @db.Uuid
+  direction      MessageDirection
+  sender         String
+  body           String?
+  contentType    MessageContentType @default(text) @map("content_type")
+  mediaFileId    String?            @map("media_file_id") @db.Uuid
+  transcription  String?
+  status         MessageStatus      @default(queued)
+  externalId     String?            @map("external_id")
+  templateKey    String?            @map("template_key")
+  createdAt      DateTime           @default(now()) @map("created_at")
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, conversationId, createdAt])
+  @@map("message")
+}
+
+model IntegrationEvent {
+  id             String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String?                @map("tenant_id") @db.Uuid
+  provider       String
+  eventType      String                 @map("event_type")
+  signatureValid Boolean                @default(false) @map("signature_valid")
+  payload        Json                   @default("{}")
+  status         IntegrationEventStatus @default(received)
+  processedAt    DateTime?              @map("processed_at")
+  error          String?
+  createdAt      DateTime               @default(now()) @map("created_at")
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([provider, eventType])
+  @@map("integration_event")
 }
 
 // ─────────────────── Email automation (Phase 2, Module 14) ───────────────────
