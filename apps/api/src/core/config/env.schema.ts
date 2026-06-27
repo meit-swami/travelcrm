@@ -11,7 +11,11 @@ export const envSchema = z.object({
   API_BASE_URL: z.string().url().default('http://localhost:4000'),
 
   // Data
+  // DATABASE_URL: privileged role (migrations + system/cross-tenant ops).
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  // APP_DATABASE_URL: NOBYPASSRLS app role for RLS-enforced request queries.
+  // When unset, request queries share DATABASE_URL (dev only).
+  APP_DATABASE_URL: z.string().optional(),
   DATABASE_REPLICA_URL: z.string().optional(),
   REDIS_URL: z.string().default('redis://localhost:6379'),
 
