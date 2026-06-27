@@ -52,6 +52,21 @@ export class AuthController {
     return this.auth.logout(dto.refreshToken);
   }
 
+  @Post('2fa/setup')
+  setup2fa(@CurrentUser('userId') userId: string) {
+    return this.auth.setup2fa(userId);
+  }
+
+  @Post('2fa/enable')
+  enable2fa(@CurrentUser('userId') userId: string, @Body() body: { code: string }) {
+    return this.auth.enable2fa(userId, body.code);
+  }
+
+  @Post('2fa/disable')
+  disable2fa(@CurrentUser('userId') userId: string, @Body() body: { code: string }) {
+    return this.auth.disable2fa(userId, body.code);
+  }
+
   @Get('me')
   async me(@CurrentUser() user: AuthUser) {
     const me = await this.prisma.unscoped.user.findUniqueOrThrow({

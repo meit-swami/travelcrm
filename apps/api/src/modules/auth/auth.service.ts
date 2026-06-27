@@ -12,6 +12,7 @@ import { AppConfigService } from '../../core/config';
 import { AuditService } from '../../core/audit';
 import {
   decryptSecret,
+  encryptSecret,
   generateOtp,
   randomToken,
   sha256,
@@ -251,6 +252,49 @@ export class AuthService {
       data: { revokedAt: new Date() },
     });
     return { success: true };
+  }
+
+  // ─────────────────────────────── 2FA (TOTP) ───────────────────────────────
+
+  /** Generate a TOTP secret (stored encrypted, not yet enabled) + otpauth URL. */
+  async setup2fa(userId: string): Promise<{ otpauthUrl: string }> {
+    const user = await this.prisma.unscoped.user.findUniqueOrThrow({ where: { id: userId } });
+    const secret = authenticator.generateSecret();
+    await this.prisma.unscoped.user.update({
+      where: { id: userId },
+      data: { totpSecret: encryptSecret(secret, this.config.get('ENCRYPTION_KEY')) },
+    });
+    return { otpauthUrl: authenticator.keyuri(user.email, 'TravelOS AI', secret) };
+  }
+
+  async enable2fa(userId: string, code: string): Promise<{ enabled: true }> {
+    const user = await this.prisma.unscoped.user.findUniqueOrThrow({ where: { id: userId } });
+    if (!user.totpSecret) {
+      throw new ForbiddenException({ code: 'TOTP_NOT_SETUP', error: 'Run 2FA setup first' });
+    }
+    const secret = decryptSecret(user.totpSecret, this.config.get('ENCRYPTION_KEY'));
+    if (!authenticator.verify({ token: code, secret })) {
+      throw new UnauthorizedException({ code: 'TOTP_INVALID', error: 'Incorrect code' });
+    }
+    await this.prisma.unscoped.user.update({ where: { id: userId }, data: { is2faEnabled: true } });
+    await this.audit.record({ action: 'updated', resourceType: 'user', resourceId: userId, after: { is2faEnabled: true } });
+    return { enabled: true };
+  }
+
+  async disable2fa(userId: string, code: string): Promise<{ enabled: false }> {
+    const user = await this.prisma.unscoped.user.findUniqueOrThrow({ where: { id: userId } });
+    if (user.totpSecret) {
+      const secret = decryptSecret(user.totpSecret, this.config.get('ENCRYPTION_KEY'));
+      if (!authenticator.verify({ token: code, secret })) {
+        throw new UnauthorizedException({ code: 'TOTP_INVALID', error: 'Incorrect code' });
+      }
+    }
+    await this.prisma.unscoped.user.update({
+      where: { id: userId },
+      data: { is2faEnabled: false, totpSecret: null },
+    });
+    await this.audit.record({ action: 'updated', resourceType: 'user', resourceId: userId, after: { is2faEnabled: false } });
+    return { enabled: false };
   }
 
   // ─────────────────────────────── Helpers ───────────────────────────────
