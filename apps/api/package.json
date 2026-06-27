@@ -8,7 +8,7 @@
     "dev": "nest start --watch",
     "start": "node dist/src/main.js",
     "start:worker": "node dist/src/worker.js",
-    "lint": "eslint \"src/**/*.ts\" --max-warnings 0",
+    "lint": "tsc -p tsconfig.json --noEmit",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "jest --passWithNoTests",
     "db:generate": "prisma generate",

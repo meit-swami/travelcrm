@@ -8,6 +8,9 @@ build/
 .next/
 out/
 coverage/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
 
 # Secrets & environment (NEVER commit real secrets)
 .env

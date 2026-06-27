@@ -2,9 +2,9 @@
 
 **An AI-Powered Tour & Travel CRM, Lead Management, Operations, Vendor Management, Quotation Management, Customer Portal & Analytics Platform.**
 
-> **Status:** 🏗️ Architecture & Design Phase — _Awaiting approval before implementation._
+> **Status:** ✅ Architecture approved · 🏗️ **Phase 0 (Foundation) implemented** — multi-tenant platform core is live.
 >
-> This repository currently contains the **architecture deliverables only**. No application code is to be written until the architecture below is reviewed and approved.
+> The architecture deliverables live in [`docs/architecture/`](docs/architecture/). Implementation has begun following the [roadmap](docs/architecture/07-development-roadmap.md); Phase 0 (tenancy, auth, RBAC, audit, security, core infra + app shell) is in the codebase and builds clean.
 
 ---
 
@@ -62,6 +62,51 @@ All deliverables live in [`docs/architecture/`](docs/architecture/):
 > 💡 All diagrams use **Mermaid**, which renders natively on GitHub. No external tooling required to view them.
 
 ---
+
+## 🗂️ Monorepo Layout
+
+```
+apps/
+  api/        NestJS backend (modular monolith) — tenancy, auth, RBAC, audit, core infra
+  web/        Next.js 15 app shell — login + dashboard, RBAC-gated
+packages/
+  types/      Shared enums, permission catalogue, role→permission matrix
+infra/
+  docker/     Dev compose stack + production Dockerfiles
+  nginx/      Reverse proxy config
+docs/         Architecture deliverables + MCP setup
+```
+
+## 🚀 Getting Started (local dev)
+
+```bash
+# 1. Install
+pnpm install
+
+# 2. Start the dev stack (Postgres, Redis, MinIO, Mailhog)
+pnpm dev:up
+
+# 3. Configure env
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
+
+# 4. Migrate (schema + RLS policies) and seed (system roles, permissions, demo tenant)
+pnpm --filter @travelos/api db:migrate:deploy
+pnpm db:seed
+
+# 5. Run API + web
+pnpm dev
+```
+
+API: http://localhost:4000 (Swagger at `/api/docs`) · Web: http://localhost:3000
+Demo login (dev seed): workspace `demo`, `admin@demo.travelos.ai` / `Demo@12345`.
+
+### What Phase 0 delivers
+- **Multi-tenancy** with PostgreSQL **Row-Level Security** (DB-enforced) + app-layer scoping.
+- **Auth**: Argon2 passwords, JWT access + rotating refresh tokens (reuse-detection), OTP, 2FA-ready, sessions + login history.
+- **RBAC**: granular `resource.action` permissions, role matrix, `@Can()` guard, Redis-cached resolution.
+- **Audit trail**: append-only, context-aware.
+- **Core infra**: zod-validated config, BullMQ queues, S3/MinIO storage (signed URLs), event bus, Problem-Details errors, health checks, helmet + rate limiting.
 
 ## ✅ Approval Gate
 
