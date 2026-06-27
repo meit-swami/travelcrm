@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Can } from '../../core/rbac';
 import { QuotationsService } from './quotations.service';
@@ -20,6 +20,12 @@ export class QuotationsController {
   @Can('quotation.create')
   create(@Param('leadId') leadId: string, @Body() dto: CreateQuotationDto) {
     return this.quotations.create(leadId, dto);
+  }
+
+  @Get('quotations')
+  @Can('quotation.read_own')
+  listRecent(@Query('status') status?: string) {
+    return this.quotations.listRecent(status);
   }
 
   @Get('quotations/:id')

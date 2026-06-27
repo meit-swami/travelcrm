@@ -111,6 +111,24 @@ export const api = {
       '/bookings',
       { token },
     ),
+
+  listQuotations: (token: string, status?: string) =>
+    request<Array<{ id: string; referenceCode: string; title: string; status: string; totalAmount: string; currency: string; createdAt: string; lead: { id: string; name: string } | null }>>(
+      `/quotations${status ? `?status=${status}` : ''}`,
+      { token },
+    ),
+
+  listConversations: (token: string) =>
+    request<Array<{ id: string; contactHandle: string; lastMessageAt: string | null; unreadCount: number; lead: { id: string; name: string } | null }>>(
+      '/conversations',
+      { token },
+    ),
+
+  conversationMessages: (token: string, id: string) =>
+    request<Array<{ id: string; direction: string; body: string | null; createdAt: string; status: string }>>(
+      `/conversations/${id}/messages`,
+      { token },
+    ),
 };
 
 export interface Lead {

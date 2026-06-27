@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import { getAccessToken } from '@/lib/session';
 import { api, STAGE_LABELS } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LeadActions } from '@/components/leads/lead-actions';
+import { QuotationActions } from '@/components/leads/quotation-actions';
 
 const fmtMoney = (amt: string | null, cur = 'INR') =>
   amt == null ? '—' : new Intl.NumberFormat('en-IN', { style: 'currency', currency: cur, maximumFractionDigits: 0 }).format(Number(amt));
@@ -44,6 +46,10 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           </div>
         )}
       </header>
+
+      <Card className="mb-6">
+        <CardContent className="pt-6"><LeadActions leadId={lead.id} /></CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left: details + notes */}
@@ -113,6 +119,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 <div className="text-right">
                   <div className="font-semibold">{fmtMoney(q.totalAmount, q.currency)}</div>
                   <div className="text-xs text-muted-foreground capitalize">{q.status}</div>
+                  <div className="mt-1 flex justify-end"><QuotationActions id={q.id} status={q.status} /></div>
                 </div>
               </div>
             ))}

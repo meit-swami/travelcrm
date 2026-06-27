@@ -40,6 +40,16 @@ export class QuotationsService {
     });
   }
 
+  /** Recent quotations across all leads (for the quotations list view). */
+  listRecent(status?: string) {
+    return this.prisma.db.quotation.findMany({
+      where: status ? { status: status as never } : {},
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      include: { lead: { select: { id: true, name: true } } },
+    });
+  }
+
   async get(id: string) {
     const quotation = await this.prisma.db.quotation.findFirst({
       where: { id },
