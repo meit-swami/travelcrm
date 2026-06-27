@@ -324,6 +324,46 @@ enum CallStatus {
   completed
 }
 
+enum InvoiceStatus {
+  draft
+  issued
+  partially_paid
+  paid
+  cancelled
+  refunded
+}
+
+enum PaymentType {
+  advance
+  partial
+  final
+}
+
+enum PaymentStatus {
+  pending
+  partial
+  paid
+  refunded
+  cancelled
+  failed
+}
+
+enum PaymentGateway {
+  razorpay
+  cashfree
+  manual
+  bank_transfer
+  cash
+}
+
+enum PortalResourceType {
+  quotation
+  itinerary
+  invoice
+  voucher
+  payment
+}
+
 // ─────────────────────────────── Models ──────────────────────────────
 
 model Tenant {
@@ -382,6 +422,11 @@ model Tenant {
   vendorComms     VendorCommunication[]
   vouchers        Voucher[]
   calls           Call[]
+  invoices        Invoice[]
+  payments        Payment[]
+  paymentWebhooks PaymentWebhook[]
+  portalIdentities PortalIdentity[]
+  portalGrants    PortalAccessGrant[]
 
   @@map("tenant")
 }
@@ -1130,6 +1175,8 @@ model Booking {
   transportBookings TransportBooking[]
   vouchers          Voucher[]
   vendorComms       VendorCommunication[]
+  invoices          Invoice[]
+  payments          Payment[]
 
   @@unique([tenantId, referenceCode])
   @@index([tenantId, opsStage])
@@ -1321,6 +1368,118 @@ model Call {
 
   @@index([tenantId, leadId])
   @@map("call")
+}
+
+// ──────────────── Payments & Invoicing (Phase 4, Module 11) ────────────────
+
+model Invoice {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String        @map("tenant_id") @db.Uuid
+  bookingId   String        @map("booking_id") @db.Uuid
+  invoiceNo   String        @map("invoice_no")
+  status      InvoiceStatus @default(draft)
+  subtotal    Decimal       @default(0) @db.Decimal(14, 2)
+  tax         Decimal       @default(0) @db.Decimal(14, 2)
+  discount    Decimal       @default(0) @db.Decimal(14, 2)
+  total       Decimal       @default(0) @db.Decimal(14, 2)
+  amountPaid  Decimal       @default(0) @map("amount_paid") @db.Decimal(14, 2)
+  currency    String        @default("INR") @db.Char(3)
+  dueDate     DateTime?     @map("due_date") @db.Date
+  lineItems   Json          @default("[]") @map("line_items")
+  pdfFileId   String?       @map("pdf_file_id") @db.Uuid
+  issuedAt    DateTime?     @map("issued_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  booking  Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  @@unique([tenantId, invoiceNo])
+  @@index([tenantId, bookingId])
+  @@map("invoice")
+}
+
+model Payment {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String         @map("tenant_id") @db.Uuid
+  bookingId       String         @map("booking_id") @db.Uuid
+  invoiceId       String?        @map("invoice_id") @db.Uuid
+  type            PaymentType    @default(advance)
+  amount          Decimal        @db.Decimal(14, 2)
+  currency        String         @default("INR") @db.Char(3)
+  status          PaymentStatus  @default(pending)
+  gateway         PaymentGateway @default(manual)
+  gatewayOrderId  String?        @map("gateway_order_id")
+  gatewayPaymentId String?       @map("gateway_payment_id")
+  method          String?
+  paidAt          DateTime?      @map("paid_at")
+  receiptFileId   String?        @map("receipt_file_id") @db.Uuid
+  metadata        Json           @default("{}")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  booking Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  invoice Invoice? @relation(fields: [invoiceId], references: [id])
+
+  @@unique([gateway, gatewayPaymentId])
+  @@index([tenantId, bookingId])
+  @@index([tenantId, status])
+  @@map("payment")
+}
+
+model PaymentWebhook {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String?  @map("tenant_id") @db.Uuid
+  gateway        String
+  eventType      String   @map("event_type")
+  signatureValid Boolean  @default(false) @map("signature_valid")
+  payload        Json     @default("{}")
+  paymentId      String?  @map("payment_id") @db.Uuid
+  status         String   @default("received")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([gateway, eventType])
+  @@map("payment_webhook")
+}
+
+// ──────────────── Customer Portal (Phase 4, Module 12) ────────────────
+
+model PortalIdentity {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  leadId      String?  @map("lead_id") @db.Uuid
+  phone       String
+  email       String?  @db.Citext
+  lastLoginAt DateTime? @map("last_login_at")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tenant Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  grants PortalAccessGrant[]
+
+  @@unique([tenantId, phone])
+  @@map("portal_identity")
+}
+
+model PortalAccessGrant {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String             @map("tenant_id") @db.Uuid
+  portalIdentityId String             @map("portal_identity_id") @db.Uuid
+  resourceType     PortalResourceType @map("resource_type")
+  resourceId       String             @map("resource_id") @db.Uuid
+  canView          Boolean            @default(true) @map("can_view")
+  canDownload      Boolean            @default(false) @map("can_download")
+  createdAt        DateTime           @default(now()) @map("created_at")
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  identity PortalIdentity @relation(fields: [portalIdentityId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, portalIdentityId])
+  @@map("portal_access_grant")
 }
 
 // ─────────────────── Email automation (Phase 2, Module 14) ───────────────────

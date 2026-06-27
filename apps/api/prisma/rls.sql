@@ -44,7 +44,9 @@ DECLARE
     'itinerary', 'itinerary_version',
     -- Operations / Vendors / Vouchers / Calls (Phase 3)
     'booking', 'operation_task', 'vendor', 'vendor_rate', 'hotel_booking',
-    'transport_booking', 'vendor_communication', 'voucher', 'call'
+    'transport_booking', 'vendor_communication', 'voucher', 'call',
+    -- Payments & Portal (Phase 4)
+    'invoice', 'payment', 'portal_identity', 'portal_access_grant'
   ];
 BEGIN
   FOREACH t IN ARRAY strict_tables LOOP

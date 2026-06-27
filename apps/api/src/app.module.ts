@@ -29,6 +29,8 @@ import { OperationsModule } from './modules/operations/operations.module';
 import { VendorsModule } from './modules/vendors/vendors.module';
 import { VouchersModule } from './modules/vouchers/vouchers.module';
 import { CallsModule } from './modules/calls/calls.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { PortalModule } from './modules/portal/portal.module';
 
 @Module({
   imports: [
@@ -58,6 +60,8 @@ import { CallsModule } from './modules/calls/calls.module';
     VendorsModule, // Phase 3
     VouchersModule, // Phase 3
     CallsModule, // Phase 3
+    PaymentsModule, // Phase 4
+    PortalModule, // Phase 4
   ],
   providers: [
     // Guard order: rate-limit → authenticate → authorize.

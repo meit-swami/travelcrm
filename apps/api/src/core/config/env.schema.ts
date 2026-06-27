@@ -40,6 +40,15 @@ export const envSchema = z.object({
     .default('true')
     .transform((v) => v === 'true'),
 
+  // Payment gateways. When keys are unset, a stub gateway issues fake orders.
+  PAYMENT_DEFAULT_GATEWAY: z.enum(['razorpay', 'cashfree', 'stub']).default('stub'),
+  RAZORPAY_KEY_ID: z.string().optional(),
+  RAZORPAY_KEY_SECRET: z.string().optional(),
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
+  CASHFREE_APP_ID: z.string().optional(),
+  CASHFREE_SECRET: z.string().optional(),
+  CASHFREE_WEBHOOK_SECRET: z.string().optional(),
+
   // External itinerary builder. When unset, a stub adapter returns sample data.
   ITINERARY_BUILDER_BASE_URL: z.string().optional(),
   ITINERARY_BUILDER_API_KEY: z.string().optional(),
