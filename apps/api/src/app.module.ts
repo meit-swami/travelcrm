@@ -25,6 +25,7 @@ import { EmailModule } from './modules/email/email.module';
 import { AiModule } from './modules/ai/ai.module';
 import { WhatsAppModule } from './modules/whatsapp/whatsapp.module';
 import { ItineraryModule } from './modules/itinerary/itinerary.module';
+import { OperationsModule } from './modules/operations/operations.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { ItineraryModule } from './modules/itinerary/itinerary.module';
     AiModule, // Phase 2
     WhatsAppModule, // Phase 2
     ItineraryModule, // Phase 2
+    OperationsModule, // Phase 3
   ],
   providers: [
     // Guard order: rate-limit → authenticate → authorize.

@@ -6,6 +6,7 @@ import { TenantContext } from '../../core/tenancy/tenant-context';
 import { AuditService } from '../../core/audit';
 import { ReferenceCodeService } from '../../core/common/reference-code.service';
 import { LeadsService } from '../leads/leads.service';
+import { BookingsService } from '../operations/bookings.service';
 import type { AddVersionDto, CreateQuotationDto, RejectQuotationDto } from './dto/quotations.dto';
 
 interface LineItem {
@@ -28,6 +29,7 @@ export class QuotationsService {
     private readonly refCodes: ReferenceCodeService,
     private readonly leads: LeadsService,
     private readonly events: EventEmitter2,
+    private readonly bookings: BookingsService,
   ) {}
 
   listForLead(leadId: string) {
@@ -173,8 +175,9 @@ export class QuotationsService {
       where: { id },
       data: { status: 'accepted', decidedAt: new Date() },
     });
-    // Won: move the lead to confirmed (handover to operations happens in Phase 3).
+    // Won: move the lead to confirmed and create the operations booking (handover).
     await this.leads.transitionStage(q.leadId, { stage: 'confirmed' });
+    await this.bookings.createFromQuotation(id);
     await this.leadActivity(q.leadId, `Quotation ${q.referenceCode} accepted`);
     await this.audit.record({ action: 'quotation_updated', resourceType: 'quotation', resourceId: id, after: { status: 'accepted' } });
     return updated;
