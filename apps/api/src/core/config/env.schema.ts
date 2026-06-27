@@ -40,6 +40,13 @@ export const envSchema = z.object({
     .default('true')
     .transform((v) => v === 'true'),
 
+  // AI providers. When no key is set, a deterministic stub provider is used.
+  AI_DEFAULT_PROVIDER: z.enum(['openai', 'gemini', 'stub']).default('stub'),
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_MODEL: z.string().default('gpt-4o-mini'),
+  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_MODEL: z.string().default('gemini-1.5-flash'),
+
   // Email (SMTP). When SMTP_HOST is unset, emails are logged (dev) not sent.
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().default(1025),

@@ -35,7 +35,9 @@ DECLARE
     -- Quotations (Phase 2)
     'quotation', 'quotation_version',
     -- Email automation (Phase 2)
-    'email_template', 'email_log', 'automation'
+    'email_template', 'email_log', 'automation',
+    -- AI layer (Phase 2)
+    'ai_insight', 'ai_extracted_requirement', 'ai_job'
   ];
 BEGIN
   FOREACH t IN ARRAY strict_tables LOOP

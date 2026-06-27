@@ -181,6 +181,18 @@ enum AutomationTrigger {
   feedback_request
 }
 
+enum AiInsightKind {
+  lead_summary
+  call_summary
+  chat_summary
+  requirement_extract
+  conversion_score
+  hot_lead
+  loss_reason
+  quote_rejection
+  mgmt_insight
+}
+
 // ─────────────────────────────── Models ──────────────────────────────
 
 model Tenant {
@@ -222,6 +234,9 @@ model Tenant {
   emailTemplates  EmailTemplate[]
   emailLogs       EmailLog[]
   automations     Automation[]
+  aiInsights      AiInsight[]
+  aiRequirements  AiExtractedRequirement[]
+  aiJobs          AiJob[]
 
   @@map("tenant")
 }
@@ -538,6 +553,8 @@ model Lead {
   dedupeAsLead   LeadDedupeMatch[] @relation("DedupeLead")
   dedupeAsDup    LeadDedupeMatch[] @relation("DedupeDuplicateOf")
   quotations     Quotation[]
+  aiInsights     AiInsight[]
+  aiRequirements AiExtractedRequirement[]
 
   @@unique([tenantId, referenceCode])
   @@index([tenantId, stage])
@@ -767,6 +784,67 @@ model QuotationVersion {
 
   @@unique([quotationId, versionNo])
   @@map("quotation_version")
+}
+
+// ───────────────────────── AI layer (Phase 2, Module 3) ─────────────────────────
+
+model AiInsight {
+  id         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId   String        @map("tenant_id") @db.Uuid
+  leadId     String?       @map("lead_id") @db.Uuid
+  kind       AiInsightKind
+  model      String
+  inputRef   Json          @default("{}") @map("input_ref")
+  output     Json          @default("{}")
+  confidence Decimal?      @db.Decimal(4, 3)
+  createdAt  DateTime      @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead   Lead?  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, leadId, kind])
+  @@map("ai_insight")
+}
+
+model AiExtractedRequirement {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  leadId          String   @map("lead_id") @db.Uuid
+  destination     String?
+  travelDate      String?  @map("travel_date")
+  budget          String?
+  adults          Int?
+  children        Int?
+  hotelPreference String?  @map("hotel_preference")
+  flightRequired  Boolean? @map("flight_required")
+  specialRequests String?  @map("special_requests")
+  sourceInsightId String?  @map("source_insight_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, leadId])
+  @@map("ai_extracted_requirement")
+}
+
+model AiJob {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  kind             String
+  provider         String
+  promptTokens     Int      @default(0) @map("prompt_tokens")
+  completionTokens Int      @default(0) @map("completion_tokens")
+  costUsd          Decimal  @default(0) @map("cost_usd") @db.Decimal(10, 5)
+  latencyMs        Int      @default(0) @map("latency_ms")
+  status           String   @default("ok")
+  error            String?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, kind])
+  @@map("ai_job")
 }
 
 // ─────────────────── Email automation (Phase 2, Module 14) ───────────────────
