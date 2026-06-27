@@ -76,10 +76,10 @@ async function seedSystemRoles() {
   console.log(`✓ ${Object.values(SystemRole).length} system roles seeded.`);
 }
 
-async function seedDemoTenant() {
+async function seedDemoTenant(): Promise<string | undefined> {
   if (process.env.NODE_ENV === 'production') {
     console.log('• Skipping demo tenant (production).');
-    return;
+    return undefined;
   }
 
   const tenant = await prisma.tenant.upsert({
@@ -148,6 +148,7 @@ async function seedDemoTenant() {
   }
 
   console.log('✓ Demo tenant + admin (admin@demo.travelos.ai / Demo@12345) + sources + lost reasons.');
+  return tenant.id;
 }
 
 /**
@@ -155,11 +156,11 @@ async function seedDemoTenant() {
  * deployment has a working login without seeding demo data. Idempotent.
  * Set BOOTSTRAP_TENANT_SLUG, BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_PASSWORD.
  */
-async function seedBootstrap() {
+async function seedBootstrap(): Promise<string | undefined> {
   const slug = process.env.BOOTSTRAP_TENANT_SLUG;
   const email = process.env.BOOTSTRAP_ADMIN_EMAIL;
   const password = process.env.BOOTSTRAP_ADMIN_PASSWORD;
-  if (!slug || !email || !password) return;
+  if (!slug || !email || !password) return undefined;
 
   const tenant = await prisma.tenant.upsert({
     where: { slug },
@@ -190,13 +191,49 @@ async function seedBootstrap() {
     }
   }
   console.log(`✓ Bootstrap tenant "${slug}" + admin ${email}.`);
+  return tenant.id;
+}
+
+/** Default email templates + a quotation-sent automation for a tenant. */
+async function seedTenantEmail(tenantId: string) {
+  const templates = [
+    {
+      key: 'quotation_sent',
+      name: 'Quotation Sent',
+      subject: 'Your travel quotation {{quotationRef}}',
+      htmlBody:
+        '<p>Dear {{customerName}},</p><p>Please find your quotation <b>{{quotationRef}}</b> for {{currency}} {{amount}}. Reply to this email with any questions.</p><p>Warm regards,<br/>The Travel Team</p>',
+      variables: ['customerName', 'quotationRef', 'amount', 'currency'],
+    },
+    {
+      key: 'payment_received',
+      name: 'Payment Received',
+      subject: 'Payment received — thank you!',
+      htmlBody: '<p>Dear {{customerName}},</p><p>We have received your payment of {{currency}} {{amount}}. Thank you!</p>',
+      variables: ['customerName', 'amount', 'currency'],
+    },
+  ];
+  for (const t of templates) {
+    const exists = await prisma.emailTemplate.findFirst({ where: { tenantId, key: t.key } });
+    if (!exists) await prisma.emailTemplate.create({ data: { tenantId, ...t } });
+  }
+  const hasAutomation = await prisma.automation.findFirst({
+    where: { tenantId, triggerEvent: 'quotation_sent' },
+  });
+  if (!hasAutomation) {
+    await prisma.automation.create({
+      data: { tenantId, triggerEvent: 'quotation_sent', templateKey: 'quotation_sent' },
+    });
+  }
 }
 
 async function main() {
   await seedPermissions();
   await seedSystemRoles();
-  await seedDemoTenant();
-  await seedBootstrap();
+  const demo = await seedDemoTenant();
+  if (demo) await seedTenantEmail(demo);
+  const bootstrap = await seedBootstrap();
+  if (bootstrap) await seedTenantEmail(bootstrap);
 }
 
 main()

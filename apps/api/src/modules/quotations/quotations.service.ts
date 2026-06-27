@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../core/database/prisma.service';
 import { TenantContext } from '../../core/tenancy/tenant-context';
@@ -26,6 +27,7 @@ export class QuotationsService {
     private readonly audit: AuditService,
     private readonly refCodes: ReferenceCodeService,
     private readonly leads: LeadsService,
+    private readonly events: EventEmitter2,
   ) {}
 
   listForLead(leadId: string) {
@@ -135,7 +137,25 @@ export class QuotationsService {
     });
     await this.leadActivity(q.leadId, `Quotation ${q.referenceCode} sent`);
     await this.audit.record({ action: 'quotation_updated', resourceType: 'quotation', resourceId: id, after: { status: 'sent' } });
-    // TODO(phase-2 email): enqueue "quotation sent" automation.
+
+    // Fire the automation trigger (email rules listen on this event).
+    const lead = await this.prisma.db.lead.findUnique({
+      where: { id: q.leadId },
+      select: { email: true, name: true },
+    });
+    if (lead?.email) {
+      this.events.emit('quotation.sent', {
+        tenantId: q.tenantId,
+        to: lead.email,
+        leadId: q.leadId,
+        variables: {
+          customerName: lead.name,
+          quotationRef: q.referenceCode,
+          amount: q.totalAmount.toString(),
+          currency: q.currency,
+        },
+      });
+    }
     return updated;
   }
 

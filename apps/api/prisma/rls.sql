@@ -33,7 +33,9 @@ DECLARE
     'lead_tag', 'lost_reason', 'assignment_rule', 'lead_dedupe_match',
     'attachment',
     -- Quotations (Phase 2)
-    'quotation', 'quotation_version'
+    'quotation', 'quotation_version',
+    -- Email automation (Phase 2)
+    'email_template', 'email_log', 'automation'
   ];
 BEGIN
   FOREACH t IN ARRAY strict_tables LOOP

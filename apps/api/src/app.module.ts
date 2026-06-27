@@ -21,6 +21,7 @@ import { UsersModule } from './modules/users/users.module';
 import { LeadsModule } from './modules/leads/leads.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { QuotationsModule } from './modules/quotations/quotations.module';
+import { EmailModule } from './modules/email/email.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { QuotationsModule } from './modules/quotations/quotations.module';
     LeadsModule, // Phase 1
     TasksModule, // Phase 1
     QuotationsModule, // Phase 2
+    EmailModule, // Phase 2
   ],
   providers: [
     // Guard order: rate-limit → authenticate → authorize.

@@ -164,6 +164,23 @@ enum QuotationStatus {
   expired
 }
 
+enum EmailStatus {
+  queued
+  sent
+  failed
+  bounced
+  opened
+}
+
+enum AutomationTrigger {
+  quotation_sent
+  payment_received
+  invoice_generated
+  voucher_generated
+  travel_reminder
+  feedback_request
+}
+
 // ─────────────────────────────── Models ──────────────────────────────
 
 model Tenant {
@@ -202,6 +219,9 @@ model Tenant {
   attachments     Attachment[]
   quotations      Quotation[]
   quotationVersions QuotationVersion[]
+  emailTemplates  EmailTemplate[]
+  emailLogs       EmailLog[]
+  automations     Automation[]
 
   @@map("tenant")
 }
@@ -747,4 +767,60 @@ model QuotationVersion {
 
   @@unique([quotationId, versionNo])
   @@map("quotation_version")
+}
+
+// ─────────────────── Email automation (Phase 2, Module 14) ───────────────────
+
+model EmailTemplate {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  key       String
+  name      String
+  subject   String
+  htmlBody  String   @map("html_body")
+  variables Json     @default("[]")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@map("email_template")
+}
+
+model EmailLog {
+  id                String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String      @map("tenant_id") @db.Uuid
+  leadId            String?     @map("lead_id") @db.Uuid
+  templateKey       String?     @map("template_key")
+  toEmail           String      @map("to_email")
+  subject           String
+  status            EmailStatus @default(queued)
+  providerMessageId String?     @map("provider_message_id")
+  error             String?
+  sentAt            DateTime?   @map("sent_at")
+  createdAt         DateTime    @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@map("email_log")
+}
+
+model Automation {
+  id           String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String            @map("tenant_id") @db.Uuid
+  triggerEvent AutomationTrigger @map("trigger_event")
+  channel      String            @default("email")
+  templateKey  String            @map("template_key")
+  delayMinutes Int               @default(0) @map("delay_minutes")
+  conditions   Json              @default("{}")
+  isActive     Boolean           @default(true) @map("is_active")
+  createdAt    DateTime          @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, triggerEvent])
+  @@map("automation")
 }

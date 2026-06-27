@@ -40,6 +40,17 @@ export const envSchema = z.object({
     .default('true')
     .transform((v) => v === 'true'),
 
+  // Email (SMTP). When SMTP_HOST is unset, emails are logged (dev) not sent.
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().default(1025),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_SECURE: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
+  EMAIL_FROM: z.string().default('TravelOS AI <no-reply@travelos.ai>'),
+
   // CORS
   CORS_ORIGINS: z
     .string()
