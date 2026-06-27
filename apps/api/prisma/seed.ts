@@ -150,10 +150,53 @@ async function seedDemoTenant() {
   console.log('✓ Demo tenant + admin (admin@demo.travelos.ai / Demo@12345) + sources + lost reasons.');
 }
 
+/**
+ * Production bootstrap: creates a first tenant + admin from env vars, so a live
+ * deployment has a working login without seeding demo data. Idempotent.
+ * Set BOOTSTRAP_TENANT_SLUG, BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_PASSWORD.
+ */
+async function seedBootstrap() {
+  const slug = process.env.BOOTSTRAP_TENANT_SLUG;
+  const email = process.env.BOOTSTRAP_ADMIN_EMAIL;
+  const password = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+  if (!slug || !email || !password) return;
+
+  const tenant = await prisma.tenant.upsert({
+    where: { slug },
+    update: {},
+    create: {
+      name: process.env.BOOTSTRAP_TENANT_NAME ?? slug,
+      slug,
+      status: 'active',
+      plan: 'growth',
+      billingEmail: email,
+    },
+  });
+
+  const passwordHash = await argon2.hash(password);
+  const admin = await prisma.user.upsert({
+    where: { tenantId_email: { tenantId: tenant.id, email } },
+    update: { status: 'active' },
+    create: { tenantId: tenant.id, email, fullName: 'Administrator', status: 'active', passwordHash },
+  });
+
+  const adminRole = await prisma.role.findFirst({ where: { key: SystemRole.Admin, isSystem: true } });
+  if (adminRole) {
+    const exists = await prisma.userRole.findFirst({
+      where: { userId: admin.id, roleId: adminRole.id, scopeTeamId: null },
+    });
+    if (!exists) {
+      await prisma.userRole.create({ data: { tenantId: tenant.id, userId: admin.id, roleId: adminRole.id } });
+    }
+  }
+  console.log(`✓ Bootstrap tenant "${slug}" + admin ${email}.`);
+}
+
 async function main() {
   await seedPermissions();
   await seedSystemRoles();
   await seedDemoTenant();
+  await seedBootstrap();
 }
 
 main()
