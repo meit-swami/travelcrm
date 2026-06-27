@@ -239,6 +239,91 @@ enum ItinerarySource {
   built
 }
 
+enum OpsStage {
+  confirmed
+  hotel_procurement
+  transport_procurement
+  voucher_generation
+  final_itinerary
+  delivered
+  completed
+  cancelled
+}
+
+enum OperationTaskStatus {
+  pending
+  in_progress
+  blocked
+  done
+}
+
+enum VendorType {
+  hotel
+  transport
+  activity
+  other
+}
+
+enum VendorStatus {
+  active
+  inactive
+  blacklisted
+}
+
+enum VehicleType {
+  taxi
+  tempo_traveller
+  coach
+  other
+}
+
+enum HotelBookingStatus {
+  requested
+  quoted
+  confirmed
+  cancelled
+}
+
+enum TransportBookingStatus {
+  requested
+  confirmed
+  cancelled
+}
+
+enum VoucherType {
+  customer
+  hotel
+  transport
+  vendor
+}
+
+enum VoucherStatus {
+  draft
+  generated
+  sent
+  void
+}
+
+enum CallProvider {
+  exotel
+  knowlarity
+  manual
+}
+
+enum CallDirection {
+  inbound
+  outbound
+}
+
+enum CallStatus {
+  ringing
+  answered
+  missed
+  busy
+  failed
+  completed
+}
+
 // ─────────────────────────────── Models ──────────────────────────────
 
 model Tenant {
@@ -288,6 +373,15 @@ model Tenant {
   integrationEvents IntegrationEvent[]
   itineraries     Itinerary[]
   itineraryVersions ItineraryVersion[]
+  bookings        Booking[]
+  operationTasks  OperationTask[]
+  vendors         Vendor[]
+  vendorRates     VendorRate[]
+  hotelBookings   HotelBooking[]
+  transportBookings TransportBooking[]
+  vendorComms     VendorCommunication[]
+  vouchers        Voucher[]
+  calls           Call[]
 
   @@map("tenant")
 }
@@ -608,6 +702,8 @@ model Lead {
   aiRequirements AiExtractedRequirement[]
   conversations  Conversation[]
   itineraries    Itinerary[]
+  bookings       Booking[]
+  calls          Call[]
 
   @@unique([tenantId, referenceCode])
   @@index([tenantId, stage])
@@ -808,6 +904,7 @@ model Quotation {
   tenant   Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   lead     Lead               @relation(fields: [leadId], references: [id], onDelete: Cascade)
   versions QuotationVersion[]
+  bookings Booking[]
 
   @@unique([tenantId, referenceCode])
   @@index([tenantId, leadId])
@@ -1001,6 +1098,229 @@ model ItineraryVersion {
 
   @@unique([itineraryId, versionNo])
   @@map("itinerary_version")
+}
+
+// ──────────────── Operations / Vendors / Vouchers (Phase 3) ────────────────
+
+model Booking {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  leadId        String   @map("lead_id") @db.Uuid
+  quotationId   String?  @map("quotation_id") @db.Uuid
+  referenceCode String   @map("reference_code")
+  destination   String?
+  travelStart   DateTime? @map("travel_start") @db.Date
+  travelEnd     DateTime? @map("travel_end") @db.Date
+  paxAdults     Int      @default(1) @map("pax_adults")
+  paxChildren   Int      @default(0) @map("pax_children")
+  totalValue    Decimal  @default(0) @map("total_value") @db.Decimal(14, 2)
+  currency      String   @default("INR") @db.Char(3)
+  opsStage      OpsStage @default(confirmed) @map("ops_stage")
+  opsOwnerUserId String? @map("ops_owner_user_id") @db.Uuid
+  handoverAt    DateTime @default(now()) @map("handover_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead      Lead       @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  quotation Quotation? @relation(fields: [quotationId], references: [id])
+
+  operationTasks    OperationTask[]
+  hotelBookings     HotelBooking[]
+  transportBookings TransportBooking[]
+  vouchers          Voucher[]
+  vendorComms       VendorCommunication[]
+
+  @@unique([tenantId, referenceCode])
+  @@index([tenantId, opsStage])
+  @@map("booking")
+}
+
+model OperationTask {
+  id             String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String              @map("tenant_id") @db.Uuid
+  bookingId      String              @map("booking_id") @db.Uuid
+  stage          OpsStage
+  title          String
+  status         OperationTaskStatus @default(pending)
+  assigneeUserId String?             @map("assignee_user_id") @db.Uuid
+  dueAt          DateTime?           @map("due_at")
+  completedAt    DateTime?           @map("completed_at")
+  notes          String?
+  createdAt      DateTime            @default(now()) @map("created_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, bookingId])
+  @@map("operation_task")
+}
+
+model Vendor {
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String       @map("tenant_id") @db.Uuid
+  type          VendorType
+  name          String
+  destination   String?
+  contactPerson String?      @map("contact_person")
+  phone         String?
+  email         String?
+  address       String?
+  status        VendorStatus @default(active)
+  rating        Decimal?     @db.Decimal(2, 1)
+  metadata      Json         @default("{}")
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  tenant         Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  rates          VendorRate[]
+  hotelBookings  HotelBooking[]
+  transportBookings TransportBooking[]
+  communications VendorCommunication[]
+
+  @@index([tenantId, type])
+  @@map("vendor")
+}
+
+model VendorRate {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  vendorId       String   @map("vendor_id") @db.Uuid
+  label          String
+  category       String?
+  contractRate   Decimal? @map("contract_rate") @db.Decimal(14, 2)
+  negotiatedRate Decimal? @map("negotiated_rate") @db.Decimal(14, 2)
+  currency       String   @default("INR") @db.Char(3)
+  validFrom      DateTime? @map("valid_from") @db.Date
+  validTo        DateTime? @map("valid_to") @db.Date
+  season         String?
+  notes          String?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, vendorId])
+  @@map("vendor_rate")
+}
+
+model HotelBooking {
+  id             String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String             @map("tenant_id") @db.Uuid
+  bookingId      String             @map("booking_id") @db.Uuid
+  vendorId       String?            @map("vendor_id") @db.Uuid
+  hotelName      String             @map("hotel_name")
+  roomType       String?            @map("room_type")
+  checkIn        DateTime?          @map("check_in") @db.Date
+  checkOut       DateTime?          @map("check_out") @db.Date
+  rooms          Int                @default(1)
+  nights         Int                @default(1)
+  rate           Decimal            @default(0) @db.Decimal(14, 2)
+  total          Decimal            @default(0) @db.Decimal(14, 2)
+  status         HotelBookingStatus @default(requested)
+  confirmationNo String?            @map("confirmation_no")
+  voucherId      String?            @map("voucher_id") @db.Uuid
+  createdAt      DateTime           @default(now()) @map("created_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  vendor  Vendor? @relation(fields: [vendorId], references: [id])
+
+  @@index([tenantId, bookingId])
+  @@map("hotel_booking")
+}
+
+model TransportBooking {
+  id          String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String                 @map("tenant_id") @db.Uuid
+  bookingId   String                 @map("booking_id") @db.Uuid
+  vendorId    String?                @map("vendor_id") @db.Uuid
+  vehicleType VehicleType            @map("vehicle_type")
+  driverName  String?                @map("driver_name")
+  driverPhone String?                @map("driver_phone")
+  pickup      String?
+  drop        String?
+  serviceDate DateTime?              @map("service_date") @db.Date
+  rate        Decimal                @default(0) @db.Decimal(14, 2)
+  total       Decimal                @default(0) @db.Decimal(14, 2)
+  status      TransportBookingStatus @default(requested)
+  voucherId   String?                @map("voucher_id") @db.Uuid
+  createdAt   DateTime               @default(now()) @map("created_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  vendor  Vendor? @relation(fields: [vendorId], references: [id])
+
+  @@index([tenantId, bookingId])
+  @@map("transport_booking")
+}
+
+model VendorCommunication {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  vendorId     String   @map("vendor_id") @db.Uuid
+  bookingId    String?  @map("booking_id") @db.Uuid
+  channel      String
+  direction    String
+  subject      String?
+  body         String?
+  refExternalId String? @map("ref_external_id")
+  createdBy    String?  @map("created_by") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vendor  Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  booking Booking? @relation(fields: [bookingId], references: [id])
+
+  @@index([tenantId, vendorId])
+  @@map("vendor_communication")
+}
+
+model Voucher {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String        @map("tenant_id") @db.Uuid
+  bookingId     String        @map("booking_id") @db.Uuid
+  type          VoucherType
+  referenceCode String        @map("reference_code")
+  status        VoucherStatus @default(draft)
+  pdfFileId     String?       @map("pdf_file_id") @db.Uuid
+  issuedTo      String?       @map("issued_to")
+  payload       Json          @default("{}")
+  generatedAt   DateTime?     @map("generated_at")
+  createdBy     String?       @map("created_by") @db.Uuid
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, referenceCode])
+  @@index([tenantId, bookingId])
+  @@map("voucher")
+}
+
+model Call {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String        @map("tenant_id") @db.Uuid
+  leadId          String?       @map("lead_id") @db.Uuid
+  provider        CallProvider  @default(manual)
+  direction       CallDirection
+  fromNumber      String?       @map("from_number")
+  toNumber        String?       @map("to_number")
+  agentUserId     String?       @map("agent_user_id") @db.Uuid
+  status          CallStatus    @default(completed)
+  startedAt       DateTime?     @map("started_at")
+  endedAt         DateTime?     @map("ended_at")
+  durationSec     Int           @default(0) @map("duration_sec")
+  recordingFileId String?       @map("recording_file_id") @db.Uuid
+  transcription   String?
+  summary         String?
+  externalCallId  String?       @map("external_call_id")
+  notes           String?
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead   Lead?  @relation(fields: [leadId], references: [id])
+
+  @@index([tenantId, leadId])
+  @@map("call")
 }
 
 // ─────────────────── Email automation (Phase 2, Module 14) ───────────────────

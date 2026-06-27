@@ -41,7 +41,10 @@ DECLARE
     -- WhatsApp / conversations (Phase 2)
     'conversation', 'message',
     -- Itinerary (Phase 2)
-    'itinerary', 'itinerary_version'
+    'itinerary', 'itinerary_version',
+    -- Operations / Vendors / Vouchers / Calls (Phase 3)
+    'booking', 'operation_task', 'vendor', 'vendor_rate', 'hotel_booking',
+    'transport_booking', 'vendor_communication', 'voucher', 'call'
   ];
 BEGIN
   FOREACH t IN ARRAY strict_tables LOOP
