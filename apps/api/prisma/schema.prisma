@@ -73,6 +73,88 @@ enum AuditActorType {
   integration
 }
 
+enum LeadStage {
+  new
+  contacted
+  interested
+  quotation_sent
+  negotiation
+  follow_up
+  confirmed
+  lost
+  cancelled
+}
+
+enum LeadStatus {
+  open
+  won
+  lost
+}
+
+enum LeadPriority {
+  low
+  medium
+  high
+  hot
+}
+
+enum LeadSourceType {
+  website
+  landing_page
+  contact_form
+  manual
+  whatsapp
+  facebook_ads
+  instagram_ads
+  google_forms
+  referral
+  import
+}
+
+enum AssignmentStrategy {
+  round_robin
+  team
+  destination
+  load_balanced
+  manual
+}
+
+enum ActivityType {
+  stage_change
+  note
+  task
+  call
+  whatsapp
+  email
+  quotation
+  payment
+  assignment
+  ai_insight
+  system
+}
+
+enum TaskType {
+  call
+  follow_up
+  email
+  whatsapp
+  meeting
+  custom
+}
+
+enum TaskStatus {
+  pending
+  in_progress
+  done
+  cancelled
+}
+
+enum DedupeMatchType {
+  phone
+  email
+  fuzzy
+}
+
 // ─────────────────────────────── Models ──────────────────────────────
 
 model Tenant {
@@ -97,6 +179,18 @@ model Tenant {
   auditLogs     AuditLog[]
   notifications Notification[]
   files         File[]
+
+  leadSources     LeadSource[]
+  leads           Lead[]
+  leadActivities  LeadActivity[]
+  notes           Note[]
+  tasks           Task[]
+  tags            Tag[]
+  leadTags        LeadTag[]
+  lostReasons     LostReason[]
+  assignmentRules AssignmentRule[]
+  dedupeMatches   LeadDedupeMatch[]
+  attachments     Attachment[]
 
   @@map("tenant")
 }
@@ -126,6 +220,11 @@ model User {
   auditLogs    AuditLog[]
   notifications Notification[]
 
+  assignedLeads Lead[]         @relation("LeadAssignee")
+  createdLeads  Lead[]         @relation("LeadCreator")
+  notes         Note[]
+  assignedTasks Task[]         @relation("TaskAssignee")
+
   @@unique([tenantId, email])
   @@index([tenantId, status])
   @@map("user")
@@ -144,6 +243,7 @@ model Team {
   manager User?        @relation("TeamManager", fields: [managerUserId], references: [id])
   members TeamMember[]
   userRoles UserRole[]
+  leads   Lead[]       @relation("LeadTeam")
 
   @@index([tenantId, type])
   @@map("team")
@@ -338,4 +438,245 @@ model File {
 
   @@index([tenantId, category])
   @@map("file")
+}
+
+// ───────────────────────── Leads domain (Phase 1) ─────────────────────────
+
+model LeadSource {
+  id        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String         @map("tenant_id") @db.Uuid
+  type      LeadSourceType
+  name      String
+  config    Json           @default("{}")
+  secret    String?        // shared secret for public capture / webhook verification
+  isActive  Boolean        @default(true) @map("is_active")
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  leads  Lead[]
+
+  @@index([tenantId, type])
+  @@map("lead_source")
+}
+
+model Lead {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String        @map("tenant_id") @db.Uuid
+  sourceId        String?       @map("source_id") @db.Uuid
+  referenceCode   String        @map("reference_code")
+  stage           LeadStage     @default(new)
+  status          LeadStatus    @default(open)
+  name            String
+  email           String?       @db.Citext
+  phone           String?
+  altPhone        String?       @map("alt_phone")
+  destination     String?
+  travelDate      DateTime?     @map("travel_date") @db.Date
+  returnDate      DateTime?     @map("return_date") @db.Date
+  adults          Int           @default(1)
+  children        Int           @default(0)
+  budgetAmount    Decimal?      @map("budget_amount") @db.Decimal(14, 2)
+  budgetCurrency  String        @default("INR") @map("budget_currency") @db.Char(3)
+  hotelPreference String?       @map("hotel_preference")
+  flightRequired  Boolean?      @map("flight_required")
+  specialRequests String?       @map("special_requests")
+  assignedUserId  String?       @map("assigned_user_id") @db.Uuid
+  assignedTeamId  String?       @map("assigned_team_id") @db.Uuid
+  priority        LeadPriority  @default(medium)
+  score           Int?
+  lostReasonId    String?       @map("lost_reason_id") @db.Uuid
+  dedupeHash      String?       @map("dedupe_hash")
+  metadata        Json          @default("{}")
+  createdBy       String?       @map("created_by") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  deletedAt       DateTime?     @map("deleted_at")
+
+  tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  source       LeadSource? @relation(fields: [sourceId], references: [id])
+  assignedUser User?       @relation("LeadAssignee", fields: [assignedUserId], references: [id])
+  assignedTeam Team?       @relation("LeadTeam", fields: [assignedTeamId], references: [id])
+  creator      User?       @relation("LeadCreator", fields: [createdBy], references: [id])
+  lostReason   LostReason? @relation(fields: [lostReasonId], references: [id])
+
+  activities     LeadActivity[]
+  notes          Note[]
+  tasks          Task[]
+  leadTags       LeadTag[]
+  attachments    Attachment[]
+  dedupeAsLead   LeadDedupeMatch[] @relation("DedupeLead")
+  dedupeAsDup    LeadDedupeMatch[] @relation("DedupeDuplicateOf")
+
+  @@unique([tenantId, referenceCode])
+  @@index([tenantId, stage])
+  @@index([tenantId, assignedUserId])
+  @@index([tenantId, phone])
+  @@index([tenantId, dedupeHash])
+  @@index([tenantId, destination])
+  @@index([tenantId, travelDate])
+  @@map("lead")
+}
+
+model LeadActivity {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId   String       @map("tenant_id") @db.Uuid
+  leadId     String       @map("lead_id") @db.Uuid
+  type       ActivityType
+  title      String
+  body       String?
+  refTable   String?      @map("ref_table")
+  refId      String?      @map("ref_id") @db.Uuid
+  actorUserId String?     @map("actor_user_id") @db.Uuid
+  metadata   Json         @default("{}")
+  createdAt  DateTime     @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, leadId, createdAt])
+  @@map("lead_activity")
+}
+
+model Note {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  leadId       String   @map("lead_id") @db.Uuid
+  authorUserId String?  @map("author_user_id") @db.Uuid
+  body         String
+  isPinned     Boolean  @default(false) @map("is_pinned")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  author User?  @relation(fields: [authorUserId], references: [id])
+
+  @@index([tenantId, leadId])
+  @@map("note")
+}
+
+model Task {
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String     @map("tenant_id") @db.Uuid
+  leadId         String?    @map("lead_id") @db.Uuid
+  title          String
+  description    String?
+  type           TaskType   @default(follow_up)
+  dueAt          DateTime?  @map("due_at")
+  remindAt       DateTime?  @map("remind_at")
+  status         TaskStatus @default(pending)
+  assigneeUserId String     @map("assignee_user_id") @db.Uuid
+  completedAt    DateTime?  @map("completed_at")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead     Lead?  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  assignee User   @relation("TaskAssignee", fields: [assigneeUserId], references: [id])
+
+  @@index([tenantId, assigneeUserId, dueAt])
+  @@index([tenantId, status, remindAt])
+  @@map("task")
+}
+
+model Tag {
+  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId String @map("tenant_id") @db.Uuid
+  name     String
+  color    String @default("#64748b")
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  leadTags LeadTag[]
+
+  @@unique([tenantId, name])
+  @@map("tag")
+}
+
+model LeadTag {
+  tenantId String @map("tenant_id") @db.Uuid
+  leadId   String @map("lead_id") @db.Uuid
+  tagId    String @map("tag_id") @db.Uuid
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([leadId, tagId])
+  @@map("lead_tag")
+}
+
+model LostReason {
+  id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId String  @map("tenant_id") @db.Uuid
+  label    String
+  category String?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  leads  Lead[]
+
+  @@unique([tenantId, label])
+  @@map("lost_reason")
+}
+
+model AssignmentRule {
+  id           String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String             @map("tenant_id") @db.Uuid
+  name         String
+  strategy     AssignmentStrategy
+  conditions   Json               @default("{}")
+  targetTeamId String?            @map("target_team_id") @db.Uuid
+  targetUserIds String[]          @map("target_user_ids") @db.Uuid
+  priority     Int                @default(100)
+  isActive     Boolean            @default(true) @map("is_active")
+  createdAt    DateTime           @default(now()) @map("created_at")
+
+  tenant Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  state  AssignmentRuleState?
+
+  @@index([tenantId, priority])
+  @@map("assignment_rule")
+}
+
+model AssignmentRuleState {
+  ruleId     String   @id @map("rule_id") @db.Uuid
+  lastUserId String?  @map("last_user_id") @db.Uuid
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  rule AssignmentRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@map("assignment_rule_state")
+}
+
+model LeadDedupeMatch {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String          @map("tenant_id") @db.Uuid
+  leadId           String          @map("lead_id") @db.Uuid
+  duplicateOfLeadId String         @map("duplicate_of_lead_id") @db.Uuid
+  matchType        DedupeMatchType @map("match_type")
+  confidence       Decimal         @default(1.0) @db.Decimal(4, 3)
+  resolved         Boolean         @default(false)
+  resolvedBy       String?         @map("resolved_by") @db.Uuid
+  createdAt        DateTime        @default(now()) @map("created_at")
+
+  tenant      Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead        Lead   @relation("DedupeLead", fields: [leadId], references: [id], onDelete: Cascade)
+  duplicateOf Lead   @relation("DedupeDuplicateOf", fields: [duplicateOfLeadId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, leadId])
+  @@map("lead_dedupe_match")
+}
+
+model Attachment {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  leadId     String   @map("lead_id") @db.Uuid
+  fileId     String   @map("file_id") @db.Uuid
+  label      String?
+  uploadedBy String?  @map("uploaded_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, leadId])
+  @@map("attachment")
 }

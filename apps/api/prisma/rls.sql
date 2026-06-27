@@ -27,7 +27,11 @@ DECLARE
   t text;
   strict_tables text[] := ARRAY[
     'user', 'team', 'user_role', 'session', 'login_history',
-    'otp_challenge', 'audit_log', 'notification', 'file'
+    'otp_challenge', 'audit_log', 'notification', 'file',
+    -- Leads domain (Phase 1)
+    'lead_source', 'lead', 'lead_activity', 'note', 'task', 'tag',
+    'lead_tag', 'lost_reason', 'assignment_rule', 'lead_dedupe_match',
+    'attachment'
   ];
 BEGIN
   FOREACH t IN ARRAY strict_tables LOOP

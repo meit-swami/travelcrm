@@ -62,4 +62,47 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ refreshToken }),
     }),
+
+  listLeads: (token: string, params?: Record<string, string>) => {
+    const qs = params ? `?${new URLSearchParams(params).toString()}` : '';
+    return request<{
+      data: Array<{
+        id: string;
+        referenceCode: string;
+        name: string;
+        phone: string | null;
+        destination: string | null;
+        stage: string;
+        priority: string;
+        createdAt: string;
+        assignedUser: { id: string; fullName: string } | null;
+        source: { id: string; name: string; type: string } | null;
+      }>;
+      pagination: { nextCursor: string | null; limit: number };
+    }>(`/leads${qs}`, { token });
+  },
+};
+
+export const LEAD_STAGES = [
+  'new',
+  'contacted',
+  'interested',
+  'quotation_sent',
+  'negotiation',
+  'follow_up',
+  'confirmed',
+  'lost',
+  'cancelled',
+] as const;
+
+export const STAGE_LABELS: Record<string, string> = {
+  new: 'New',
+  contacted: 'Contacted',
+  interested: 'Interested',
+  quotation_sent: 'Quotation Sent',
+  negotiation: 'Negotiation',
+  follow_up: 'Follow Up',
+  confirmed: 'Confirmed',
+  lost: 'Lost',
+  cancelled: 'Cancelled',
 };

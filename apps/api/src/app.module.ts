@@ -18,6 +18,8 @@ import { HealthModule } from './core/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AuthGuard } from './modules/auth/auth.guard';
 import { UsersModule } from './modules/users/users.module';
+import { LeadsModule } from './modules/leads/leads.module';
+import { TasksModule } from './modules/tasks/tasks.module';
 
 @Module({
   imports: [
@@ -33,9 +35,11 @@ import { UsersModule } from './modules/users/users.module';
     HealthModule,
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
 
-    // Domain modules (Phase 0)
+    // Domain modules
     AuthModule,
     UsersModule,
+    LeadsModule, // Phase 1
+    TasksModule, // Phase 1
   ],
   providers: [
     // Guard order: rate-limit → authenticate → authorize.

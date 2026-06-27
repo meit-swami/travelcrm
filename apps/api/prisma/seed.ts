@@ -121,7 +121,33 @@ async function seedDemoTenant() {
     }
   }
 
-  console.log('✓ Demo tenant + admin (admin@demo.travelos.ai / Demo@12345).');
+  // Default lost reasons (feed AI loss analytics later).
+  const lostReasons = [
+    { label: 'Price too high', category: 'pricing' },
+    { label: 'Chose competitor', category: 'competition' },
+    { label: 'Plan postponed', category: 'timing' },
+    { label: 'No response', category: 'engagement' },
+    { label: 'Out of budget', category: 'pricing' },
+  ];
+  for (const lr of lostReasons) {
+    const exists = await prisma.lostReason.findFirst({ where: { tenantId: tenant.id, label: lr.label } });
+    if (!exists) {
+      await prisma.lostReason.create({ data: { tenantId: tenant.id, ...lr } });
+    }
+  }
+
+  // A default manual + website source.
+  for (const src of [
+    { type: 'manual' as const, name: 'Manual Entry' },
+    { type: 'website' as const, name: 'Main Website' },
+  ]) {
+    const exists = await prisma.leadSource.findFirst({ where: { tenantId: tenant.id, name: src.name } });
+    if (!exists) {
+      await prisma.leadSource.create({ data: { tenantId: tenant.id, type: src.type, name: src.name } });
+    }
+  }
+
+  console.log('✓ Demo tenant + admin (admin@demo.travelos.ai / Demo@12345) + sources + lost reasons.');
 }
 
 async function main() {
