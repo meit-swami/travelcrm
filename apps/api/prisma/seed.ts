@@ -1,0 +1,138 @@
+/**
+ * Seed: permission catalogue + system roles (always), plus a demo tenant and
+ * admin user (dev only — never in production). Idempotent.
+ *
+ * Run: pnpm db:seed
+ */
+import { PrismaClient } from '@prisma/client';
+import * as argon2 from 'argon2';
+import {
+  PERMISSION_CATALOGUE,
+  ROLE_PERMISSIONS,
+  ALL_PERMISSIONS,
+  SystemRole,
+} from '@travelos/types';
+
+const prisma = new PrismaClient();
+
+const ROLE_NAMES: Record<string, string> = {
+  super_admin: 'Super Admin',
+  admin: 'Admin',
+  sales_manager: 'Sales Manager',
+  sales_executive: 'Sales Executive',
+  operations_manager: 'Operations Manager',
+  operations_executive: 'Operations Executive',
+  accounts_team: 'Accounts Team',
+  vendor_team: 'Vendor Team',
+  customer: 'Customer',
+};
+
+async function seedPermissions() {
+  for (const key of PERMISSION_CATALOGUE) {
+    const [resource, action] = key.split('.');
+    await prisma.permission.upsert({
+      where: { key },
+      update: { resource, action },
+      create: { key, resource, action },
+    });
+  }
+  console.log(`✓ ${PERMISSION_CATALOGUE.length} permissions seeded.`);
+}
+
+async function seedSystemRoles() {
+  const allPermissions = await prisma.permission.findMany();
+  const byKey = new Map(allPermissions.map((p) => [p.key, p.id]));
+
+  for (const roleKey of Object.values(SystemRole)) {
+    // NULLs are distinct in SQL uniques, so upsert-on-(null tenant, key) is unsafe.
+    // Find-then-write keeps the seed idempotent for system roles.
+    const existingRole = await prisma.role.findFirst({
+      where: { tenantId: null, key: roleKey, isSystem: true },
+    });
+    const role = existingRole
+      ? await prisma.role.update({
+          where: { id: existingRole.id },
+          data: { name: ROLE_NAMES[roleKey], isSystem: true },
+        })
+      : await prisma.role.create({
+          data: { key: roleKey, name: ROLE_NAMES[roleKey], isSystem: true, tenantId: null },
+        });
+
+    const grant = ROLE_PERMISSIONS[roleKey];
+    const permissionIds =
+      grant === ALL_PERMISSIONS
+        ? allPermissions.map((p) => p.id)
+        : grant.map((k) => byKey.get(k)).filter((id): id is string => Boolean(id));
+
+    // Reset and re-apply this role's permissions.
+    await prisma.rolePermission.deleteMany({ where: { roleId: role.id } });
+    if (permissionIds.length) {
+      await prisma.rolePermission.createMany({
+        data: permissionIds.map((permissionId) => ({ roleId: role.id, permissionId })),
+        skipDuplicates: true,
+      });
+    }
+  }
+  console.log(`✓ ${Object.values(SystemRole).length} system roles seeded.`);
+}
+
+async function seedDemoTenant() {
+  if (process.env.NODE_ENV === 'production') {
+    console.log('• Skipping demo tenant (production).');
+    return;
+  }
+
+  const tenant = await prisma.tenant.upsert({
+    where: { slug: 'demo' },
+    update: {},
+    create: {
+      name: 'Demo Travel Co.',
+      slug: 'demo',
+      status: 'active',
+      plan: 'growth',
+      billingEmail: 'admin@demo.travelos.ai',
+    },
+  });
+
+  const passwordHash = await argon2.hash('Demo@12345');
+  const admin = await prisma.user.upsert({
+    where: { tenantId_email: { tenantId: tenant.id, email: 'admin@demo.travelos.ai' } },
+    update: {},
+    create: {
+      tenantId: tenant.id,
+      email: 'admin@demo.travelos.ai',
+      fullName: 'Demo Admin',
+      status: 'active',
+      passwordHash,
+    },
+  });
+
+  const adminRole = await prisma.role.findFirst({
+    where: { key: SystemRole.Admin, isSystem: true },
+  });
+  if (adminRole) {
+    const existingAssignment = await prisma.userRole.findFirst({
+      where: { userId: admin.id, roleId: adminRole.id, scopeTeamId: null },
+    });
+    if (!existingAssignment) {
+      await prisma.userRole.create({
+        data: { tenantId: tenant.id, userId: admin.id, roleId: adminRole.id },
+      });
+    }
+  }
+
+  console.log('✓ Demo tenant + admin (admin@demo.travelos.ai / Demo@12345).');
+}
+
+async function main() {
+  await seedPermissions();
+  await seedSystemRoles();
+  await seedDemoTenant();
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());

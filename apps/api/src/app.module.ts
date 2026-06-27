@@ -1,0 +1,52 @@
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+
+import { AppConfigModule } from './core/config';
+import { TenancyModule } from './core/tenancy';
+import { ContextMiddleware } from './core/tenancy/context.middleware';
+import { DatabaseModule } from './core/database/database.module';
+import { EventsModule } from './core/events/events.module';
+import { QueueModule } from './core/queue/queue.module';
+import { StorageModule } from './core/storage/storage.module';
+import { RbacModule } from './core/rbac';
+import { PermissionGuard } from './core/rbac/permission.guard';
+import { AuditModule } from './core/audit';
+import { AllExceptionsFilter } from './core/common';
+import { HealthModule } from './core/health/health.module';
+
+import { AuthModule } from './modules/auth/auth.module';
+import { AuthGuard } from './modules/auth/auth.guard';
+import { UsersModule } from './modules/users/users.module';
+
+@Module({
+  imports: [
+    // Platform core
+    AppConfigModule,
+    TenancyModule,
+    DatabaseModule,
+    EventsModule,
+    QueueModule,
+    StorageModule,
+    RbacModule,
+    AuditModule,
+    HealthModule,
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
+
+    // Domain modules (Phase 0)
+    AuthModule,
+    UsersModule,
+  ],
+  providers: [
+    // Guard order: rate-limit → authenticate → authorize.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: AuthGuard },
+    { provide: APP_GUARD, useClass: PermissionGuard },
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
+  ],
+})
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(ContextMiddleware).forRoutes('*');
+  }
+}

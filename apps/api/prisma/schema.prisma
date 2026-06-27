@@ -1,0 +1,341 @@
+// TravelOS AI — Prisma schema (Phase 0: Platform Core)
+// See docs/architecture/02-database-schema.md for the full target model.
+// Multi-tenant: every business table carries tenant_id; PostgreSQL RLS policies
+// (apply-rls.mjs) enforce isolation in addition to app-layer scoping.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────── Enums ───────────────────────────────
+
+enum TenantStatus {
+  active
+  trial
+  suspended
+  cancelled
+}
+
+enum TenantPlan {
+  starter
+  growth
+  enterprise
+}
+
+enum UserStatus {
+  active
+  invited
+  disabled
+}
+
+enum TeamType {
+  sales
+  operations
+  accounts
+  vendor
+}
+
+enum OtpChannel {
+  sms
+  whatsapp
+  email
+}
+
+enum OtpPurpose {
+  login
+  verify
+}
+
+enum AuditAction {
+  created
+  updated
+  deleted
+  assigned
+  transferred
+  status_changed
+  payment_updated
+  quotation_updated
+  login
+  logout
+  export
+  permission_change
+}
+
+enum AuditActorType {
+  user
+  customer
+  system
+  integration
+}
+
+// ─────────────────────────────── Models ──────────────────────────────
+
+model Tenant {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String
+  slug         String       @unique
+  customDomain String?      @unique @map("custom_domain")
+  status       TenantStatus @default(trial)
+  plan         TenantPlan   @default(starter)
+  settings     Json         @default("{}")
+  billingEmail String?      @map("billing_email")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  users         User[]
+  teams         Team[]
+  roles         Role[]
+  userRoles     UserRole[]
+  sessions      Session[]
+  loginHistory  LoginHistory[]
+  otpChallenges OtpChallenge[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+  files         File[]
+
+  @@map("tenant")
+}
+
+model User {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String     @map("tenant_id") @db.Uuid
+  email        String     @db.Citext
+  phone        String?
+  passwordHash String?    @map("password_hash")
+  fullName     String     @map("full_name")
+  avatarUrl    String?    @map("avatar_url")
+  status       UserStatus @default(invited)
+  is2faEnabled Boolean    @default(false) @map("is_2fa_enabled")
+  totpSecret   String?    @map("totp_secret_enc")
+  lastLoginAt  DateTime?  @map("last_login_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  deletedAt    DateTime?  @map("deleted_at")
+
+  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userRoles    UserRole[]
+  teamMembers  TeamMember[]
+  sessions     Session[]
+  managedTeams Team[]         @relation("TeamManager")
+  loginHistory LoginHistory[]
+  auditLogs    AuditLog[]
+  notifications Notification[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId, status])
+  @@map("user")
+}
+
+model Team {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  name          String
+  type          TeamType
+  managerUserId String?  @map("manager_user_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  tenant  Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  manager User?        @relation("TeamManager", fields: [managerUserId], references: [id])
+  members TeamMember[]
+  userRoles UserRole[]
+
+  @@index([tenantId, type])
+  @@map("team")
+}
+
+model TeamMember {
+  teamId     String   @map("team_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  roleInTeam String?  @map("role_in_team")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, userId])
+  @@map("team_member")
+}
+
+// Roles: tenantId NULL = system role (shared catalogue), else tenant custom role.
+model Role {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String?  @map("tenant_id") @db.Uuid
+  key         String
+  name        String
+  description String?
+  isSystem    Boolean  @default(false) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tenant          Tenant?          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@unique([tenantId, key])
+  @@map("role")
+}
+
+model Permission {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key         String   @unique // e.g. "lead.create"
+  resource    String
+  action      String
+  description String?
+
+  rolePermissions RolePermission[]
+
+  @@index([resource])
+  @@map("permission")
+}
+
+model RolePermission {
+  roleId       String @map("role_id") @db.Uuid
+  permissionId String @map("permission_id") @db.Uuid
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permission")
+}
+
+model UserRole {
+  id          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String  @map("tenant_id") @db.Uuid
+  userId      String  @map("user_id") @db.Uuid
+  roleId      String  @map("role_id") @db.Uuid
+  scopeTeamId String? @map("scope_team_id") @db.Uuid
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  scopeTeam Team?  @relation(fields: [scopeTeamId], references: [id])
+
+  @@unique([userId, roleId, scopeTeamId])
+  @@index([tenantId, userId])
+  @@map("user_role")
+}
+
+model Session {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  refreshTokenHash String    @map("refresh_token_hash")
+  ipAddress        String?   @map("ip_address")
+  userAgent        String?   @map("user_agent")
+  device           String?
+  expiresAt        DateTime  @map("expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  lastSeenAt       DateTime  @default(now()) @map("last_seen_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, userId])
+  @@index([refreshTokenHash])
+  @@map("session")
+}
+
+model LoginHistory {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  userId        String?  @map("user_id") @db.Uuid
+  email         String
+  success       Boolean
+  failureReason String?  @map("failure_reason")
+  ipAddress     String?  @map("ip_address")
+  userAgent     String?  @map("user_agent")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, email])
+  @@map("login_history")
+}
+
+model OtpChallenge {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String     @map("tenant_id") @db.Uuid
+  identityRef  String     @map("identity_ref") // phone or email
+  channel      OtpChannel
+  codeHash     String     @map("code_hash")
+  purpose      OtpPurpose @default(login)
+  expiresAt    DateTime   @map("expires_at")
+  consumedAt   DateTime?  @map("consumed_at")
+  attempts     Int        @default(0)
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, identityRef])
+  @@map("otp_challenge")
+}
+
+model AuditLog {
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String         @map("tenant_id") @db.Uuid
+  actorUserId  String?        @map("actor_user_id") @db.Uuid
+  actorType    AuditActorType @default(user) @map("actor_type")
+  action       AuditAction
+  resourceType String         @map("resource_type")
+  resourceId   String?        @map("resource_id") @db.Uuid
+  before       Json?
+  after        Json?
+  ipAddress    String?        @map("ip_address")
+  userAgent    String?        @map("user_agent")
+  createdAt    DateTime       @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  actor  User?  @relation(fields: [actorUserId], references: [id])
+
+  @@index([tenantId, resourceType, resourceId, createdAt])
+  @@map("audit_log")
+}
+
+model Notification {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  type       String
+  title      String
+  body       String?
+  refTable   String?  @map("ref_table")
+  refId      String?  @map("ref_id") @db.Uuid
+  isRead     Boolean  @default(false) @map("is_read")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, userId, isRead])
+  @@map("notification")
+}
+
+model File {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  bucket             String
+  objectKey          String   @map("object_key")
+  filename           String
+  contentType        String   @map("content_type")
+  sizeBytes          BigInt   @map("size_bytes")
+  checksum           String?
+  category           String
+  ownerResourceType  String?  @map("owner_resource_type")
+  ownerResourceId    String?  @map("owner_resource_id") @db.Uuid
+  isPublic           Boolean  @default(false) @map("is_public")
+  createdBy          String?  @map("created_by") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, category])
+  @@map("file")
+}
