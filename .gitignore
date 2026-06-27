@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Builds
+dist/
+build/
+.next/
+out/
+coverage/
+
+# Secrets & environment (NEVER commit real secrets)
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Claude Code local (machine-specific, may contain secrets)
+.claude/settings.local.json
+
+# Logs & OS
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/*
+!.vscode/extensions.json

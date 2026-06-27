@@ -136,6 +136,10 @@ permission sets, settings, dashboards, and AI summaries.
 - **White-label custom domains:** map host → tenant at the edge; automated TLS (ACME) per domain.
 - Data tier on a **private network** — no public DB/Redis exposure.
 
+> **Hostinger VPS constraint:** Do **not** bind or publicly host any application service on the VPS's
+> **primary (main) public IP**. Use a secondary IP / private interface for origin services and expose
+> everything through the Nginx reverse proxy + domain. See [`docs/mcp-setup.md`](../mcp-setup.md) §3.
+
 ## 8. Observability
 
 | Signal | Tooling (pluggable) |
