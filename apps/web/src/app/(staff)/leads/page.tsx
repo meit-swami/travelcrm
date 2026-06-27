@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getAccessToken } from '@/lib/session';
 import { api, STAGE_LABELS } from '@/lib/api';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 const STAGE_STYLES: Record<string, string> = {
   new: 'bg-blue-100 text-blue-700',
@@ -27,6 +28,7 @@ export default async function LeadsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Leads</h1>
           <p className="text-sm text-muted-foreground">{leads.length} lead(s) in your pipeline</p>
         </div>
+        <Link href="/leads/new"><Button>+ New Lead</Button></Link>
       </header>
 
       <Card className="overflow-hidden">

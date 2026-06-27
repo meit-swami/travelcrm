@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { LayoutDashboard, Users, Phone, FileText, Settings, Briefcase } from 'lucide-react';
+import { LayoutDashboard, Users, Phone, FileText, Settings, Briefcase, Truck } from 'lucide-react';
 import { getAccessToken } from '@/lib/session';
 import { api } from '@/lib/api';
 import { LogoutButton } from '@/components/logout-button';
@@ -10,6 +10,7 @@ const NAV = [
   { href: '/leads', label: 'Leads', icon: Briefcase },
   { href: '/conversations', label: 'Conversations', icon: Phone },
   { href: '/quotations', label: 'Quotations', icon: FileText },
+  { href: '/operations', label: 'Operations', icon: Truck },
   { href: '/settings/users', label: 'Users', icon: Users },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];

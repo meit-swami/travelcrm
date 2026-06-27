@@ -81,7 +81,58 @@ export const api = {
       pagination: { nextCursor: string | null; limit: number };
     }>(`/leads${qs}`, { token });
   },
+
+  getLead: (token: string, id: string) =>
+    request<Lead>(`/leads/${id}`, { token }),
+
+  leadTimeline: (token: string, id: string) =>
+    request<Array<{ id: string; type: string; title: string; body: string | null; createdAt: string }>>(
+      `/leads/${id}/timeline`,
+      { token },
+    ),
+
+  leadQuotations: (token: string, id: string) =>
+    request<Array<{ id: string; referenceCode: string; title: string; status: string; totalAmount: string; currency: string }>>(
+      `/leads/${id}/quotations`,
+      { token },
+    ),
+
+  leadNotes: (token: string, id: string) =>
+    request<Array<{ id: string; body: string; isPinned: boolean; createdAt: string; author: { fullName: string } | null }>>(
+      `/leads/${id}/notes`,
+      { token },
+    ),
+
+  createLead: (token: string, body: Record<string, unknown>) =>
+    request<Lead>('/leads', { method: 'POST', token, body: JSON.stringify(body) }),
+
+  listBookings: (token: string) =>
+    request<Array<{ id: string; referenceCode: string; destination: string | null; opsStage: string; totalValue: string; currency: string; lead: { name: string } | null }>>(
+      '/bookings',
+      { token },
+    ),
 };
+
+export interface Lead {
+  id: string;
+  referenceCode: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  destination: string | null;
+  travelDate: string | null;
+  adults: number;
+  children: number;
+  budgetAmount: string | null;
+  budgetCurrency: string;
+  stage: string;
+  status: string;
+  priority: string;
+  score: number | null;
+  specialRequests: string | null;
+  assignedUser?: { id: string; fullName: string; email: string } | null;
+  source?: { id: string; name: string; type: string } | null;
+}
 
 export const LEAD_STAGES = [
   'new',
