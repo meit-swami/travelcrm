@@ -40,6 +40,10 @@ export const envSchema = z.object({
     .default('true')
     .transform((v) => v === 'true'),
 
+  // External itinerary builder. When unset, a stub adapter returns sample data.
+  ITINERARY_BUILDER_BASE_URL: z.string().optional(),
+  ITINERARY_BUILDER_API_KEY: z.string().optional(),
+
   // WhatsApp Business (Cloud API). When unset, sends are logged (dev) not sent.
   WHATSAPP_TOKEN: z.string().optional(),
   WHATSAPP_PHONE_ID: z.string().optional(),

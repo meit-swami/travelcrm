@@ -234,6 +234,11 @@ enum IntegrationEventStatus {
   failed
 }
 
+enum ItinerarySource {
+  imported
+  built
+}
+
 // ─────────────────────────────── Models ──────────────────────────────
 
 model Tenant {
@@ -281,6 +286,8 @@ model Tenant {
   conversations   Conversation[]
   messages        Message[]
   integrationEvents IntegrationEvent[]
+  itineraries     Itinerary[]
+  itineraryVersions ItineraryVersion[]
 
   @@map("tenant")
 }
@@ -600,6 +607,7 @@ model Lead {
   aiInsights     AiInsight[]
   aiRequirements AiExtractedRequirement[]
   conversations  Conversation[]
+  itineraries    Itinerary[]
 
   @@unique([tenantId, referenceCode])
   @@index([tenantId, stage])
@@ -953,6 +961,46 @@ model IntegrationEvent {
 
   @@index([provider, eventType])
   @@map("integration_event")
+}
+
+// ───────────────────── Itinerary integration (Phase 2, Module 7) ─────────────────────
+
+model Itinerary {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String          @map("tenant_id") @db.Uuid
+  leadId           String?         @map("lead_id") @db.Uuid
+  externalId       String?         @map("external_id")
+  title            String
+  destination      String?
+  durationDays     Int?            @map("duration_days")
+  currentVersionId String?         @map("current_version_id") @db.Uuid
+  source           ItinerarySource @default(imported)
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  tenant   Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead     Lead?              @relation(fields: [leadId], references: [id])
+  versions ItineraryVersion[]
+
+  @@index([tenantId, leadId])
+  @@map("itinerary")
+}
+
+model ItineraryVersion {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  itineraryId       String   @map("itinerary_id") @db.Uuid
+  versionNo         Int      @map("version_no")
+  payload           Json     @default("{}")
+  externalVersionRef String? @map("external_version_ref")
+  pdfFileId         String?  @map("pdf_file_id") @db.Uuid
+  syncedAt          DateTime @default(now()) @map("synced_at")
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  itinerary Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+
+  @@unique([itineraryId, versionNo])
+  @@map("itinerary_version")
 }
 
 // ─────────────────── Email automation (Phase 2, Module 14) ───────────────────

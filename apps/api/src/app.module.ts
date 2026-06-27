@@ -24,6 +24,7 @@ import { QuotationsModule } from './modules/quotations/quotations.module';
 import { EmailModule } from './modules/email/email.module';
 import { AiModule } from './modules/ai/ai.module';
 import { WhatsAppModule } from './modules/whatsapp/whatsapp.module';
+import { ItineraryModule } from './modules/itinerary/itinerary.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { WhatsAppModule } from './modules/whatsapp/whatsapp.module';
     EmailModule, // Phase 2
     AiModule, // Phase 2
     WhatsAppModule, // Phase 2
+    ItineraryModule, // Phase 2
   ],
   providers: [
     // Guard order: rate-limit → authenticate → authorize.

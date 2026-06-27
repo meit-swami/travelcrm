@@ -39,7 +39,9 @@ DECLARE
     -- AI layer (Phase 2)
     'ai_insight', 'ai_extracted_requirement', 'ai_job',
     -- WhatsApp / conversations (Phase 2)
-    'conversation', 'message'
+    'conversation', 'message',
+    -- Itinerary (Phase 2)
+    'itinerary', 'itinerary_version'
   ];
 BEGIN
   FOREACH t IN ARRAY strict_tables LOOP
