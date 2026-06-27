@@ -86,6 +86,20 @@ services:
       postgres: { condition: service_healthy }
     networks: [internal]
 
+  # Single scheduler instance (cron: reminders, quotation expiry, travel reminders).
+  scheduler:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.api
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      RUN_SCHEDULER: "true"
+    command: ["node", "dist/src/scheduler.js"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [internal]
+
   web:
     build:
       context: ../..

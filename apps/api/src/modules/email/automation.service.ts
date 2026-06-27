@@ -55,6 +55,16 @@ export class AutomationService {
     return this.dispatch('voucher_generated', e);
   }
 
+  @OnEvent('travel.reminder')
+  onTravelReminder(e: AutomationEvent) {
+    return this.dispatch('travel_reminder', e);
+  }
+
+  @OnEvent('feedback.request')
+  onFeedbackRequest(e: AutomationEvent) {
+    return this.dispatch('feedback_request', e);
+  }
+
   async dispatch(trigger: $Enums.AutomationTrigger, event: AutomationEvent): Promise<void> {
     if (!event.to) return;
     const automations = await this.prisma.unscoped.automation.findMany({
