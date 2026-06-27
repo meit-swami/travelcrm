@@ -8,7 +8,7 @@
  *  - the web client (UI gating only — server is authoritative)
  */
 
-import { SystemRole } from './enums.js';
+import { SystemRole } from './enums';
 
 export const PermissionAction = {
   Create: 'create',

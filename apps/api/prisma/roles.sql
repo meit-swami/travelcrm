@@ -10,13 +10,11 @@
 --   psql "$DATABASE_URL" -v app_password="'<strong-password>'" -f prisma/roles.sql
 --   APP_DATABASE_URL=postgresql://travelcrm_app:<password>@host:5432/travelcrm?schema=public
 
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'travelcrm_app') THEN
-    EXECUTE format('CREATE ROLE travelcrm_app LOGIN NOBYPASSRLS PASSWORD %L', :'app_password');
-  END IF;
-END
-$$;
+-- Create the role if missing. \gexec runs the generated CREATE statement, and
+-- :'app_password' is substituted by psql here (it is NOT a dollar-quoted block,
+-- so substitution works — unlike inside a DO $$ ... $$ body).
+SELECT format('CREATE ROLE travelcrm_app LOGIN NOBYPASSRLS PASSWORD %L', :'app_password')
+WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'travelcrm_app')\gexec
 
 -- Connect + schema usage.
 GRANT USAGE ON SCHEMA public TO travelcrm_app;

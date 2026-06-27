@@ -1,2 +1,2 @@
-export * from './enums.js';
-export * from './permissions.js';
+export * from './enums';
+export * from './permissions';
