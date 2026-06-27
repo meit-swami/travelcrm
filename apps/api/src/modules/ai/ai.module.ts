@@ -24,6 +24,6 @@ function aiProviderFactory(config: AppConfigService): AiProvider {
     AiService,
     { provide: AI_PROVIDER, useFactory: aiProviderFactory, inject: [AppConfigService] },
   ],
-  exports: [AiService],
+  exports: [AiService, AI_PROVIDER],
 })
 export class AiModule {}

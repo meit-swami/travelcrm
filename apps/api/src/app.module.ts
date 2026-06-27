@@ -31,6 +31,7 @@ import { VouchersModule } from './modules/vouchers/vouchers.module';
 import { CallsModule } from './modules/calls/calls.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { PortalModule } from './modules/portal/portal.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { PortalModule } from './modules/portal/portal.module';
     CallsModule, // Phase 3
     PaymentsModule, // Phase 4
     PortalModule, // Phase 4
+    ReportsModule, // Phase 5
   ],
   providers: [
     // Guard order: rate-limit → authenticate → authorize.
