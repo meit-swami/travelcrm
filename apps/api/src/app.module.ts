@@ -20,6 +20,7 @@ import { AuthGuard } from './modules/auth/auth.guard';
 import { UsersModule } from './modules/users/users.module';
 import { LeadsModule } from './modules/leads/leads.module';
 import { TasksModule } from './modules/tasks/tasks.module';
+import { QuotationsModule } from './modules/quotations/quotations.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
     UsersModule,
     LeadsModule, // Phase 1
     TasksModule, // Phase 1
+    QuotationsModule, // Phase 2
   ],
   providers: [
     // Guard order: rate-limit → authenticate → authorize.

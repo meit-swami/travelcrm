@@ -31,7 +31,9 @@ DECLARE
     -- Leads domain (Phase 1)
     'lead_source', 'lead', 'lead_activity', 'note', 'task', 'tag',
     'lead_tag', 'lost_reason', 'assignment_rule', 'lead_dedupe_match',
-    'attachment'
+    'attachment',
+    -- Quotations (Phase 2)
+    'quotation', 'quotation_version'
   ];
 BEGIN
   FOREACH t IN ARRAY strict_tables LOOP

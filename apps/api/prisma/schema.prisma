@@ -155,6 +155,15 @@ enum DedupeMatchType {
   fuzzy
 }
 
+enum QuotationStatus {
+  draft
+  sent
+  viewed
+  accepted
+  rejected
+  expired
+}
+
 // ─────────────────────────────── Models ──────────────────────────────
 
 model Tenant {
@@ -191,6 +200,8 @@ model Tenant {
   assignmentRules AssignmentRule[]
   dedupeMatches   LeadDedupeMatch[]
   attachments     Attachment[]
+  quotations      Quotation[]
+  quotationVersions QuotationVersion[]
 
   @@map("tenant")
 }
@@ -506,6 +517,7 @@ model Lead {
   attachments    Attachment[]
   dedupeAsLead   LeadDedupeMatch[] @relation("DedupeLead")
   dedupeAsDup    LeadDedupeMatch[] @relation("DedupeDuplicateOf")
+  quotations     Quotation[]
 
   @@unique([tenantId, referenceCode])
   @@index([tenantId, stage])
@@ -679,4 +691,60 @@ model Attachment {
 
   @@index([tenantId, leadId])
   @@map("attachment")
+}
+
+// ─────────────────────── Quotations (Phase 2, Module 6) ───────────────────────
+
+model Quotation {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String          @map("tenant_id") @db.Uuid
+  leadId           String          @map("lead_id") @db.Uuid
+  referenceCode    String          @map("reference_code")
+  title            String
+  currentVersionId String?         @map("current_version_id") @db.Uuid
+  revisionCount    Int             @default(0) @map("revision_count")
+  status           QuotationStatus @default(draft)
+  sentAt           DateTime?       @map("sent_at")
+  viewedAt         DateTime?       @map("viewed_at")
+  decidedAt        DateTime?       @map("decided_at")
+  validUntil       DateTime?       @map("valid_until") @db.Date
+  rejectionReason  String?         @map("rejection_reason")
+  totalAmount      Decimal         @default(0) @map("total_amount") @db.Decimal(14, 2)
+  currency         String          @default("INR") @db.Char(3)
+  createdBy        String?         @map("created_by") @db.Uuid
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  tenant   Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  lead     Lead               @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  versions QuotationVersion[]
+
+  @@unique([tenantId, referenceCode])
+  @@index([tenantId, leadId])
+  @@index([tenantId, status])
+  @@index([tenantId, validUntil])
+  @@map("quotation")
+}
+
+model QuotationVersion {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  quotationId String   @map("quotation_id") @db.Uuid
+  versionNo   Int      @map("version_no")
+  lineItems   Json     @default("[]") @map("line_items")
+  subtotal    Decimal  @default(0) @db.Decimal(14, 2)
+  tax         Decimal  @default(0) @db.Decimal(14, 2)
+  discount    Decimal  @default(0) @db.Decimal(14, 2)
+  total       Decimal  @default(0) @db.Decimal(14, 2)
+  currency    String   @default("INR") @db.Char(3)
+  notes       String?
+  pdfFileId   String?  @map("pdf_file_id") @db.Uuid
+  createdBy   String?  @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@unique([quotationId, versionNo])
+  @@map("quotation_version")
 }
