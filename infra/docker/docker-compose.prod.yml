@@ -67,13 +67,18 @@ services:
     depends_on:
       redis: { condition: service_started }
 
-  # Runs DB migrations + RLS + seed once, then exits.
+  # Runs DB migrations + roles + seed + RLS once, then exits.
+  # Order matters: seed BEFORE applying RLS, so seed inserts (system roles with
+  # NULL tenant_id, etc.) can't be blocked by tenant policies regardless of the
+  # connecting role's BYPASSRLS attribute.
   migrate:
     build:
       context: ../..
       dockerfile: infra/docker/Dockerfile.api
     env_file: [.env]
-    command: ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node prisma/apply-rls.mjs && node prisma/apply-roles.mjs && node dist/prisma/seed.js"]
+    # Order: migrate → roles → SEED → RLS (seed before RLS so inserts aren't
+    # blocked by policies). No local-postgres dependency: Supabase is external.
+    command: ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node prisma/apply-roles.mjs && node dist/prisma/seed.js && node prisma/apply-rls.mjs"]
     restart: "no"
     network_mode: host
 

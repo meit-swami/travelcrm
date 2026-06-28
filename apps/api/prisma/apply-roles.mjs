@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import pg from 'pg';
+import { makePgClient } from './pg-client.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const appUrl = process.env.APP_DATABASE_URL;
@@ -26,7 +26,7 @@ const sql = readFileSync(join(__dirname, 'roles.sql'), 'utf8')
 END $$;`,
   );
 
-const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+const client = makePgClient(process.env.DATABASE_URL);
 
 try {
   await client.connect();
