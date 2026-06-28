@@ -129,6 +129,52 @@ export const api = {
       `/conversations/${id}/messages`,
       { token },
     ),
+
+  // ── Customer portal (OTP-scoped) ──
+  portalRequestOtp: (body: { tenantSlug: string; phone: string }) =>
+    request<{ sent: boolean }>('/portal/request-otp', { method: 'POST', body: JSON.stringify(body) }),
+
+  portalVerifyOtp: (body: { tenantSlug: string; phone: string; code: string }) =>
+    request<{ accessToken: string; identityId: string }>('/portal/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  portalMe: (token: string) =>
+    request<{ phone: string; email: string | null; lead: { id: string; name: string; destination: string | null; travelDate: string | null; stage: string } | null }>(
+      '/portal/me',
+      { token },
+    ),
+
+  portalQuotations: (token: string) =>
+    request<Array<{ id: string; referenceCode: string; title: string; status: string; totalAmount: string; currency: string; sentAt: string | null }>>(
+      '/portal/quotations',
+      { token },
+    ),
+
+  portalInvoices: (token: string) =>
+    request<Array<{ id: string; invoiceNo: string; status: string; total: string; amountPaid: string; currency: string; dueDate: string | null }>>(
+      '/portal/invoices',
+      { token },
+    ),
+
+  portalPayments: (token: string) =>
+    request<Array<{ id: string; type: string; amount: string; currency: string; status: string; paidAt: string | null }>>(
+      '/portal/payments',
+      { token },
+    ),
+
+  portalVouchers: (token: string) =>
+    request<Array<{ id: string; type: string; referenceCode: string; status: string; generatedAt: string | null }>>(
+      '/portal/vouchers',
+      { token },
+    ),
+
+  portalItinerary: (token: string) =>
+    request<Array<{ id: string; title: string; destination: string | null; durationDays: number | null }>>(
+      '/portal/itinerary',
+      { token },
+    ),
 };
 
 export interface Lead {
