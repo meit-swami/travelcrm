@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { ACCESS_COOKIE, REFRESH_COOKIE } from '@/lib/session';
-
-const isProd = process.env.NODE_ENV === 'production';
+import { ACCESS_COOKIE, COOKIE_SECURE, REFRESH_COOKIE } from '@/lib/session';
 
 /** Persist tokens in httpOnly cookies after a successful login. */
 export async function POST(req: Request): Promise<NextResponse> {
@@ -14,7 +12,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
 
   const res = NextResponse.json({ ok: true });
-  const base = { httpOnly: true, secure: isProd, sameSite: 'lax' as const, path: '/' };
+  const base = { httpOnly: true, secure: COOKIE_SECURE, sameSite: 'lax' as const, path: '/' };
   res.cookies.set(ACCESS_COOKIE, accessToken, { ...base, maxAge: 60 * 15 });
   res.cookies.set(REFRESH_COOKIE, refreshToken, { ...base, maxAge: 60 * 60 * 24 * 30 });
   return res;

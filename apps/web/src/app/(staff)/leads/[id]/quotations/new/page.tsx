@@ -3,6 +3,7 @@
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiError } from '@/lib/api';
+import { clientFetch } from '@/lib/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,7 +35,7 @@ export default function NewQuotationPage({ params }: { params: Promise<{ id: str
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/proxy/leads/${id}/quotations`, {
+      const res = await clientFetch(`/api/proxy/leads/${id}/quotations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

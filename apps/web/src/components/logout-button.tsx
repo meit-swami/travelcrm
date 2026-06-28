@@ -2,11 +2,12 @@
 
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { clientFetch } from '@/lib/client';
 
 export function LogoutButton() {
   const router = useRouter();
   async function logout() {
-    await fetch('/api/session', { method: 'DELETE' });
+    await clientFetch('/api/session', { method: 'DELETE' });
     router.push('/login');
     router.refresh();
   }

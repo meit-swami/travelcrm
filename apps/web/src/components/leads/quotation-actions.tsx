@@ -3,9 +3,10 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { clientFetch } from '@/lib/client';
 
 async function post(path: string) {
-  const res = await fetch(`/api/proxy/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+  const res = await clientFetch(`/api/proxy/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
   if (!res.ok) throw new Error((await res.json())?.detail ?? 'Action failed');
   return res.json();
 }

@@ -1,5 +1,6 @@
 import { requirePortalToken } from '@/lib/portal-session';
 import { api } from '@/lib/api';
+import { appUrl } from '@/lib/client';
 import { Card, CardContent } from '@/components/ui/card';
 
 export default async function PortalVouchers() {
@@ -18,7 +19,7 @@ export default async function PortalVouchers() {
               <div className="font-mono text-xs text-muted-foreground">{v.referenceCode}</div>
             </div>
             <a
-              href={`/api/portal-download/${v.id}`}
+              href={appUrl(`/api/portal-download/${v.id}`)}
               className="rounded-md border border-input px-3 py-1.5 text-sm hover:bg-muted"
             >
               Download

@@ -1,9 +1,12 @@
 /**
- * Minimal typed API client for the TravelOS API. The browser talks to the API
- * directly (CORS-enabled); the access token is read from the httpOnly session
- * cookie on the server and passed explicitly where needed.
+ * Typed API client used by SERVER components and route handlers (they pass the
+ * token explicitly). It targets the API over the internal/server network. The
+ * BROWSER never calls this directly — client components go through same-origin
+ * Next route handlers (see lib/client.ts), so no API URL is exposed and there
+ * is no CORS.
  */
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+export const API_BASE =
+  process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 export interface ProblemDetails {
   title: string;

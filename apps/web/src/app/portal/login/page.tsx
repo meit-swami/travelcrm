@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api, ApiError } from '@/lib/api';
+import { clientFetch } from '@/lib/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,10 +21,15 @@ export default function PortalLoginPage() {
     setLoading(true);
     setError(null);
     try {
-      await api.portalRequestOtp({ tenantSlug, phone });
+      const res = await clientFetch('/api/proxy/portal/request-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantSlug, phone }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail ?? 'Could not send code');
       setStep('code');
     } catch (err) {
-      setError(err instanceof ApiError ? err.problem.detail ?? err.problem.title : 'Could not send code');
+      setError(err instanceof Error ? err.message : 'Could not send code');
     } finally {
       setLoading(false);
     }
@@ -35,8 +40,14 @@ export default function PortalLoginPage() {
     setLoading(true);
     setError(null);
     try {
-      const { accessToken } = await api.portalVerifyOtp({ tenantSlug, phone, code });
-      await fetch('/api/portal-session', {
+      const verifyRes = await clientFetch('/api/proxy/portal/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenantSlug, phone, code }),
+      });
+      if (!verifyRes.ok) throw new Error((await verifyRes.json().catch(() => ({}))).detail ?? 'Invalid code');
+      const { accessToken } = await verifyRes.json();
+      await clientFetch('/api/portal-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accessToken }),
@@ -44,7 +55,7 @@ export default function PortalLoginPage() {
       router.push('/portal');
       router.refresh();
     } catch (err) {
-      setError(err instanceof ApiError ? err.problem.detail ?? err.problem.title : 'Invalid code');
+      setError(err instanceof Error ? err.message : 'Invalid code');
     } finally {
       setLoading(false);
     }

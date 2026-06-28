@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiError } from '@/lib/api';
+import { clientFetch } from '@/lib/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +22,7 @@ export default function NewLeadPage() {
     setError(null);
     try {
       // Authenticated via the server-side BFF proxy (httpOnly cookie → bearer).
-      const res = await fetch('/api/proxy/leads', {
+      const res = await clientFetch('/api/proxy/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
