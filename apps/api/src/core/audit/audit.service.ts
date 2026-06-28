@@ -28,6 +28,19 @@ export class AuditService {
     private readonly tenantContext: TenantContext,
   ) {}
 
+  /** Read recent audit entries for the active tenant (RLS-scoped). */
+  list(filters: { resourceType?: string; resourceId?: string; limit?: number }) {
+    return this.prisma.db.auditLog.findMany({
+      where: {
+        ...(filters.resourceType ? { resourceType: filters.resourceType } : {}),
+        ...(filters.resourceId ? { resourceId: filters.resourceId } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      take: Math.min(filters.limit ?? 100, 200),
+      include: { actor: { select: { id: true, fullName: true } } },
+    });
+  }
+
   async record(entry: AuditEntry): Promise<void> {
     const ctx = this.tenantContext.get();
     const tenantId = entry.tenantId ?? ctx?.tenantId;

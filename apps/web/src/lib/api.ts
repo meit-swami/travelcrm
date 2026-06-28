@@ -175,6 +175,43 @@ export const api = {
       '/portal/itinerary',
       { token },
     ),
+
+  // ── Settings / admin ──
+  listUsers: (token: string) =>
+    request<Array<{ id: string; email: string; fullName: string; phone: string | null; status: string; lastLoginAt: string | null }>>(
+      '/users',
+      { token },
+    ),
+
+  listSources: (token: string) =>
+    request<Array<{ id: string; type: string; name: string; isActive: boolean; secret: string | null }>>(
+      '/lead-sources',
+      { token },
+    ),
+
+  listRules: (token: string) =>
+    request<Array<{ id: string; name: string; strategy: string; priority: number; isActive: boolean }>>(
+      '/assignment-rules',
+      { token },
+    ),
+
+  listEmailTemplates: (token: string) =>
+    request<Array<{ id: string; key: string; name: string; subject: string; isActive: boolean }>>(
+      '/email/templates',
+      { token },
+    ),
+
+  listEmailLogs: (token: string) =>
+    request<Array<{ id: string; templateKey: string | null; toEmail: string; subject: string; status: string; createdAt: string }>>(
+      '/email/logs',
+      { token },
+    ),
+
+  listAudit: (token: string) =>
+    request<Array<{ id: string; action: string; resourceType: string; resourceId: string | null; actorType: string; ipAddress: string | null; createdAt: string; actor: { fullName: string } | null }>>(
+      '/audit-log',
+      { token },
+    ),
 };
 
 export interface Lead {
