@@ -32,3 +32,8 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Redis snapshots (created by local redis-server during testing)
+dump.rdb
+*.rdb
+*.aof
