@@ -71,7 +71,7 @@ services:
     env_file: [.env]
     depends_on:
       postgres: { condition: service_healthy }
-    command: ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node prisma/apply-rls.mjs && node dist/prisma/seed.js"]
+    command: ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node prisma/apply-rls.mjs && node prisma/apply-roles.mjs && node dist/prisma/seed.js"]
     restart: "no"
     networks: [internal]
 

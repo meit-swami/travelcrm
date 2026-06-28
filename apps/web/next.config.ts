@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   transpilePackages: ['@travelos/types'],
-  ...(basePath ? { basePath, assetPrefix: basePath } : {}),
+  ...(basePath ? { basePath, assetPrefix: basePath, skipTrailingSlashRedirect: true } : {}),
 };
 
 export default nextConfig;
