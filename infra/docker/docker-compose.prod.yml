@@ -2,10 +2,19 @@ name: travelcrm
 
 # Production stack for an isolated deployment under /var/www/travelcrm.
 #
+# SELF-CONTAINED: every service (Postgres, Redis, MinIO, API, worker, scheduler,
+# web, edge) runs on the internal compose network. There is NO external database
+# dependency — Postgres runs as a container with its own named volume, so the
+# stack has no reliance on Supabase or any outside host. This removes the whole
+# class of "can't reach the database" (P1001) failures seen with managed DBs.
+#
 # ISOLATION GUARANTEE: only the edge proxy publishes a port, and it binds to
-# 127.0.0.1 ONLY (never the VPS main/public IP). Postgres, Redis, MinIO, the
-# API, worker and web are reachable solely on the internal compose network.
-# The host's existing web server proxies a sub-domain → 127.0.0.1:${EDGE_PORT}.
+# 127.0.0.1 ONLY (never the VPS main/public IP). The host's existing web server
+# proxies a sub-domain (or IP sub-path) → 127.0.0.1:${EDGE_PORT}.
+
+x-api-build: &api-build
+  context: ../..
+  dockerfile: infra/docker/Dockerfile.api
 
 services:
   postgres:
@@ -21,7 +30,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
     networks: [internal]
 
   redis:
@@ -30,8 +39,6 @@ services:
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redisdata:/data
-    ports:
-      - "127.0.0.1:6379:6379"
     networks: [internal]
 
   minio:
@@ -43,8 +50,6 @@ services:
       MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
     volumes:
       - miniodata:/data
-    ports:
-      - "127.0.0.1:9000:9000"
     networks: [internal]
 
   minio-init:
@@ -57,55 +62,53 @@ services:
       exit 0;"
     networks: [internal]
 
-  api:
-    build:
-      context: ../..
-      dockerfile: infra/docker/Dockerfile.api
-    restart: unless-stopped
-    env_file: [.env]
-    network_mode: host
-    depends_on:
-      redis: { condition: service_started }
-
   # Runs DB migrations + roles + seed + RLS once, then exits.
   # Order matters: seed BEFORE applying RLS, so seed inserts (system roles with
   # NULL tenant_id, etc.) can't be blocked by tenant policies regardless of the
   # connecting role's BYPASSRLS attribute.
   migrate:
-    build:
-      context: ../..
-      dockerfile: infra/docker/Dockerfile.api
+    build: *api-build
     env_file: [.env]
-    # Order: migrate → roles → SEED → RLS (seed before RLS so inserts aren't
-    # blocked by policies). No local-postgres dependency: Supabase is external.
     command: ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node prisma/apply-roles.mjs && node dist/prisma/seed.js && node prisma/apply-rls.mjs"]
     restart: "no"
-    network_mode: host
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [internal]
+
+  api:
+    build: *api-build
+    restart: unless-stopped
+    env_file: [.env]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+      migrate: { condition: service_completed_successfully }
+    networks: [internal]
 
   worker:
-    build:
-      context: ../..
-      dockerfile: infra/docker/Dockerfile.api
+    build: *api-build
     restart: unless-stopped
     env_file: [.env]
     command: ["node", "dist/src/worker.js"]
-    network_mode: host
     depends_on:
+      postgres: { condition: service_healthy }
       redis: { condition: service_started }
+      migrate: { condition: service_completed_successfully }
+    networks: [internal]
 
   # Single scheduler instance (cron: reminders, quotation expiry, travel reminders).
   scheduler:
-    build:
-      context: ../..
-      dockerfile: infra/docker/Dockerfile.api
+    build: *api-build
     restart: unless-stopped
     env_file: [.env]
     environment:
       RUN_SCHEDULER: "true"
     command: ["node", "dist/src/scheduler.js"]
-    network_mode: host
     depends_on:
+      postgres: { condition: service_healthy }
       redis: { condition: service_started }
+      migrate: { condition: service_completed_successfully }
+    networks: [internal]
 
   web:
     build:
@@ -118,13 +121,12 @@ services:
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_BASE_PATH: ${BASE_PATH:-}
-      API_BASE_URL: http://host.docker.internal:4000
-      # The browser talks to the Next origin only (no API URL needed). Set
+      # The browser talks to the Next origin only (no API URL exposed). Next's
+      # route handlers proxy to the API service over the internal network.
+      API_BASE_URL: http://api:4000
       # COOKIE_SECURE=false ONLY for HTTP testing — use HTTPS in production.
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    depends_on: [redis]
+    depends_on: [api]
     networks: [internal]
 
   edge:
@@ -133,9 +135,7 @@ services:
     depends_on: [web]
     # Bind to localhost ONLY — never the public/main IP.
     ports:
-      - "127.0.0.1:${EDGE_PORT:-8080}:80"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "127.0.0.1:${EDGE_PORT:-8090}:80"
     volumes:
       - ${NGINX_CONF:-../nginx/nginx.subpath.conf}:/etc/nginx/nginx.conf:ro
       - ../nginx/proxy_params.conf:/etc/nginx/proxy_params.conf:ro
