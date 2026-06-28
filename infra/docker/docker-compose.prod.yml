@@ -60,7 +60,7 @@ services:
     restart: unless-stopped
     env_file: [.env]
     depends_on:
-      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
     networks: [internal]
 
   # Runs DB migrations + RLS + seed once, then exits.
@@ -69,8 +69,6 @@ services:
       context: ../..
       dockerfile: infra/docker/Dockerfile.api
     env_file: [.env]
-    depends_on:
-      postgres: { condition: service_healthy }
     command: ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node prisma/apply-rls.mjs && node prisma/apply-roles.mjs && node dist/prisma/seed.js"]
     restart: "no"
     networks: [internal]
@@ -83,7 +81,7 @@ services:
     env_file: [.env]
     command: ["node", "dist/src/worker.js"]
     depends_on:
-      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
     networks: [internal]
 
   # Single scheduler instance (cron: reminders, quotation expiry, travel reminders).
@@ -97,7 +95,7 @@ services:
       RUN_SCHEDULER: "true"
     command: ["node", "dist/src/scheduler.js"]
     depends_on:
-      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
     networks: [internal]
 
   web:
