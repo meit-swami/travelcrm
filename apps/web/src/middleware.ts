@@ -29,9 +29,7 @@ export function middleware(req: NextRequest): NextResponse {
 }
 
 export const config = {
-  // Run on staff routes only — exclude Next internals, the BFF APIs, and the
-  // customer portal (which has its own OTP auth).
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|api/session|api/proxy|api/portal-session|api/portal-download|portal).*)',
-  ],
+  // Run on staff PAGES only — exclude Next internals, all /api routes (BFF +
+  // login/session handlers), and the customer portal (own OTP auth).
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/|portal).*)'],
 };

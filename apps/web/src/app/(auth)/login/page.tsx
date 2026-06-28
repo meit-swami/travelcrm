@@ -2,20 +2,20 @@
 
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { api, ApiError } from '@/lib/api';
+import { Plane, Sparkles, ShieldCheck, BarChart3 } from 'lucide-react';
+import { clientFetch } from '@/lib/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function LoginPage() {
   return (
     <Suspense>
-      <LoginForm />
+      <LoginScreen />
     </Suspense>
   );
 }
 
-function LoginForm() {
+function LoginScreen() {
   const router = useRouter();
   const params = useSearchParams();
   const [tenantSlug, setTenantSlug] = useState('demo');
@@ -29,29 +29,62 @@ function LoginForm() {
     setLoading(true);
     setError(null);
     try {
-      const tokens = await api.login({ tenantSlug, email, password });
-      await fetch('/api/session', {
+      const res = await clientFetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(tokens),
+        body: JSON.stringify({ tenantSlug, email, password }),
       });
+      if (!res.ok) {
+        const p = await res.json().catch(() => ({}));
+        throw new Error(p.detail ?? p.title ?? 'Invalid credentials');
+      }
       router.push(params.get('next') ?? '/dashboard');
       router.refresh();
     } catch (err) {
-      setError(err instanceof ApiError ? err.problem.detail ?? err.problem.title : 'Login failed');
+      setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl">TravelOS AI</CardTitle>
-          <CardDescription>Sign in to your workspace</CardDescription>
-        </CardHeader>
-        <CardContent>
+    <main className="grid min-h-screen lg:grid-cols-2">
+      {/* Brand panel */}
+      <div className="relative hidden overflow-hidden bg-gradient-to-br from-indigo-600 via-blue-600 to-sky-500 lg:flex lg:flex-col lg:justify-between lg:p-12 lg:text-white">
+        <div className="flex items-center gap-2 text-lg font-semibold">
+          <Plane className="h-6 w-6" /> TravelOS&nbsp;AI
+        </div>
+        <div className="space-y-6">
+          <h1 className="text-4xl font-bold leading-tight">
+            Run your travel business,<br />end&nbsp;to&nbsp;end.
+          </h1>
+          <p className="max-w-md text-white/80">
+            Leads, AI enrichment, quotations, operations, payments and a customer portal — one platform.
+          </p>
+          <ul className="space-y-3 text-sm text-white/90">
+            <li className="flex items-center gap-3"><Sparkles className="h-5 w-5" /> AI summarizes chats & scores hot leads</li>
+            <li className="flex items-center gap-3"><BarChart3 className="h-5 w-5" /> Quote → confirm → operate → get paid</li>
+            <li className="flex items-center gap-3"><ShieldCheck className="h-5 w-5" /> Multi-tenant, role-based & fully audited</li>
+          </ul>
+        </div>
+        <p className="text-xs text-white/60">© TravelOS AI</p>
+        {/* decorative glow */}
+        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-sky-300/20 blur-3xl" />
+      </div>
+
+      {/* Form panel */}
+      <div className="flex items-center justify-center bg-muted/30 p-6">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 lg:hidden">
+            <div className="flex items-center gap-2 text-xl font-semibold text-primary">
+              <Plane className="h-6 w-6" /> TravelOS&nbsp;AI
+            </div>
+          </div>
+
+          <h2 className="text-2xl font-semibold tracking-tight">Welcome back</h2>
+          <p className="mb-6 mt-1 text-sm text-muted-foreground">Sign in to your workspace</p>
+
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-sm font-medium" htmlFor="tenant">Workspace</label>
@@ -59,19 +92,26 @@ function LoginForm() {
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium" htmlFor="email">Email</label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" required />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium" htmlFor="password">Password</label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading}>
+            {error && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>
+            )}
+            <Button type="submit" className="h-11 w-full text-base" disabled={loading}>
               {loading ? 'Signing in…' : 'Sign in'}
             </Button>
           </form>
-        </CardContent>
-      </Card>
+
+          <p className="mt-6 text-center text-xs text-muted-foreground">
+            Customer?{' '}
+            <a href="/portal/login" className="font-medium text-primary hover:underline">Go to the trip portal →</a>
+          </p>
+        </div>
+      </div>
     </main>
   );
 }

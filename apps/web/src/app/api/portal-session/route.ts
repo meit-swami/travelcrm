@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PORTAL_COOKIE } from '@/lib/portal-session';
-
-const isProd = process.env.NODE_ENV === 'production';
+import { COOKIE_SECURE } from '@/lib/session';
 
 /** Persist the portal access token in an httpOnly cookie after OTP verify. */
 export async function POST(req: Request): Promise<NextResponse> {
@@ -10,7 +9,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   const res = NextResponse.json({ ok: true });
   res.cookies.set(PORTAL_COOKIE, accessToken, {
     httpOnly: true,
-    secure: isProd,
+    secure: COOKIE_SECURE,
     sameSite: 'lax',
     path: '/',
     maxAge: 60 * 60, // portal access token TTL

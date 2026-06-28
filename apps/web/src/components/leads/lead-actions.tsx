@@ -4,9 +4,10 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { clientFetch } from '@/lib/client';
 
 async function post(path: string, body?: unknown) {
-  const res = await fetch(`/api/proxy/${path}`, {
+  const res = await clientFetch(`/api/proxy/${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     ...(body ? { body: JSON.stringify(body) } : {}),

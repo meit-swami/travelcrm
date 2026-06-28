@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiError } from '@/lib/api';
+import { clientFetch } from '@/lib/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -19,7 +20,7 @@ export function InviteUser() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/proxy/users', {
+      const res = await clientFetch('/api/proxy/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, fullName }),
