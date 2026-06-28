@@ -30,6 +30,8 @@ services:
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redisdata:/data
+    ports:
+      - "127.0.0.1:6379:6379"
     networks: [internal]
 
   minio:
@@ -41,6 +43,8 @@ services:
       MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
     volumes:
       - miniodata:/data
+    ports:
+      - "127.0.0.1:9000:9000"
     networks: [internal]
 
   minio-init:
@@ -59,9 +63,9 @@ services:
       dockerfile: infra/docker/Dockerfile.api
     restart: unless-stopped
     env_file: [.env]
+    network_mode: host
     depends_on:
       redis: { condition: service_started }
-    networks: [internal]
 
   # Runs DB migrations + RLS + seed once, then exits.
   migrate:
@@ -71,7 +75,7 @@ services:
     env_file: [.env]
     command: ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node prisma/apply-rls.mjs && node prisma/apply-roles.mjs && node dist/prisma/seed.js"]
     restart: "no"
-    networks: [internal]
+    network_mode: host
 
   worker:
     build:
@@ -80,9 +84,9 @@ services:
     restart: unless-stopped
     env_file: [.env]
     command: ["node", "dist/src/worker.js"]
+    network_mode: host
     depends_on:
       redis: { condition: service_started }
-    networks: [internal]
 
   # Single scheduler instance (cron: reminders, quotation expiry, travel reminders).
   scheduler:
@@ -94,9 +98,9 @@ services:
     environment:
       RUN_SCHEDULER: "true"
     command: ["node", "dist/src/scheduler.js"]
+    network_mode: host
     depends_on:
       redis: { condition: service_started }
-    networks: [internal]
 
   web:
     build:
@@ -109,20 +113,24 @@ services:
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_BASE_PATH: ${BASE_PATH:-}
-      API_BASE_URL: http://api:4000
+      API_BASE_URL: http://host.docker.internal:4000
       # The browser talks to the Next origin only (no API URL needed). Set
       # COOKIE_SECURE=false ONLY for HTTP testing — use HTTPS in production.
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
-    depends_on: [api]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on: [redis]
     networks: [internal]
 
   edge:
     image: nginx:1.27-alpine
     restart: unless-stopped
-    depends_on: [api, web]
+    depends_on: [web]
     # Bind to localhost ONLY — never the public/main IP.
     ports:
       - "127.0.0.1:${EDGE_PORT:-8080}:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ${NGINX_CONF:-../nginx/nginx.subpath.conf}:/etc/nginx/nginx.conf:ro
       - ../nginx/proxy_params.conf:/etc/nginx/proxy_params.conf:ro
