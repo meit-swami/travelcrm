@@ -14,7 +14,8 @@ RUN pnpm install --frozen-lockfile
 # Copy sources, generate client, build
 COPY packages/types packages/types
 COPY apps/api apps/api
-RUN pnpm --filter @travelos/api db:generate \
+RUN pnpm --filter @travelos/types build \
+  && pnpm --filter @travelos/api db:generate \
   && pnpm --filter @travelos/api build
 
 # ── Runtime stage ──

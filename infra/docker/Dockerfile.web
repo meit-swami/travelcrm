@@ -10,6 +10,9 @@ RUN pnpm install --frozen-lockfile
 
 COPY packages/types packages/types
 COPY apps/web apps/web
+RUN mkdir -p apps/web/public
+ARG NEXT_PUBLIC_BASE_PATH=
+ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @travelos/web build
 
