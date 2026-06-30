@@ -63,8 +63,10 @@ export async function seedDemoData(prisma: PrismaClient, tenantId: string): Prom
     return;
   }
 
-  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
-  const emailDomain = (tenant?.billingEmail?.split('@')[1]) ?? 'demo.travelos.ai';
+  // Fixed, predictable login domain so the demo accounts are easy to remember
+  // (e.g. superadmin@demo.travelos.ai). These are login identifiers only — no
+  // email is ever sent to them.
+  const emailDomain = 'demo.travelos.ai';
   const demoPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD ?? 'Demo@12345';
   const passwordHash = await argon2.hash(demoPassword);
 
