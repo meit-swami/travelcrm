@@ -26,5 +26,5 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO travelcrm_app;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO travelcrm_app;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO travelcrm_app;
 
--- Allow the role to read the helper function used by RLS policies.
-GRANT EXECUTE ON FUNCTION current_tenant_id() TO travelcrm_app;
+-- NOTE: EXECUTE on current_tenant_id() is granted in rls.sql, where the function
+-- is created (apply-rls runs after this script).

@@ -21,6 +21,15 @@ EXCEPTION WHEN others THEN
 END;
 $$;
 
+-- Let the app role execute the helper used by every policy. The function is
+-- created here, so the grant lives here too; the role itself is created earlier
+-- by apply-roles.mjs, so guard the grant for dev (no APP_DATABASE_URL → no role).
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'travelcrm_app') THEN
+    GRANT EXECUTE ON FUNCTION current_tenant_id() TO travelcrm_app;
+  END IF;
+END $$;
+
 -- Apply a strict tenant policy to a table with a `tenant_id` column.
 DO $$
 DECLARE
