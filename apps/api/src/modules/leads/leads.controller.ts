@@ -6,6 +6,7 @@ import {
   AssignLeadDto,
   CreateLeadDto,
   CreateNoteDto,
+  ImportLeadsDto,
   ListLeadsQuery,
   TransitionStageDto,
   UpdateLeadDto,
@@ -27,6 +28,12 @@ export class LeadsController {
   @Can('lead.create')
   create(@Body() dto: CreateLeadDto) {
     return this.leads.create(dto);
+  }
+
+  @Post('import')
+  @Can('lead.create')
+  importLeads(@Body() dto: ImportLeadsDto) {
+    return this.leads.importMany(dto.leads);
   }
 
   @Get(':id')

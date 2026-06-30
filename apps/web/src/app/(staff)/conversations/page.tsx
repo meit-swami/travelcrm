@@ -1,7 +1,9 @@
 import Link from 'next/link';
+import { Phone } from 'lucide-react';
 import { getAccessToken } from '@/lib/session';
 import { api } from '@/lib/api';
 import { Card } from '@/components/ui/card';
+import { PageHeader } from '@/components/page-header';
 
 export default async function ConversationsPage() {
   const token = await getAccessToken();
@@ -9,11 +11,8 @@ export default async function ConversationsPage() {
 
   return (
     <div className="p-8">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Conversations</h1>
-        <p className="text-sm text-muted-foreground">WhatsApp inbox — {conversations.length} thread(s)</p>
-      </header>
-      <Card className="divide-y divide-border">
+      <PageHeader icon={Phone} title="Conversations" subtitle={`WhatsApp inbox — ${conversations.length} thread(s)`} />
+      <Card className="divide-y divide-border shadow-sm">
         {conversations.length === 0 && (
           <div className="p-10 text-center text-sm text-muted-foreground">
             No conversations yet. Inbound WhatsApp messages appear here (configure a WhatsApp source + webhook).

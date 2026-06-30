@@ -1,7 +1,9 @@
 import Link from 'next/link';
+import { Truck } from 'lucide-react';
 import { getAccessToken } from '@/lib/session';
 import { api } from '@/lib/api';
 import { Card } from '@/components/ui/card';
+import { PageHeader } from '@/components/page-header';
 
 const OPS_LABELS: Record<string, string> = {
   confirmed: 'Confirmed',
@@ -23,12 +25,9 @@ export default async function OperationsPage() {
 
   return (
     <div className="p-8">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Operations</h1>
-        <p className="text-sm text-muted-foreground">{bookings.length} confirmed booking(s) in the pipeline</p>
-      </header>
+      <PageHeader icon={Truck} title="Operations" subtitle={`${bookings.length} confirmed booking(s) in the pipeline`} />
 
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden shadow-sm">
         <table className="w-full text-sm">
           <thead className="border-b border-border bg-muted/50 text-left text-xs uppercase text-muted-foreground">
             <tr>

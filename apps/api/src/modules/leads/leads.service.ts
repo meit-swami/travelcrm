@@ -24,6 +24,27 @@ export class LeadsService {
 
   // ─────────────────────────────── Create ───────────────────────────────
 
+  /**
+   * Bulk-import leads (e.g. from CSV). Each row goes through the normal create
+   * path (dedupe + auto-assignment). Per-row failures are collected, not fatal.
+   */
+  async importMany(
+    rows: CreateLeadDto[],
+  ): Promise<{ created: number; failed: number; errors: Array<{ row: number; error: string }> }> {
+    let created = 0;
+    const errors: Array<{ row: number; error: string }> = [];
+    for (let i = 0; i < rows.length; i++) {
+      try {
+        if (!rows[i]?.name?.trim()) throw new Error('Missing name');
+        await this.create(rows[i]);
+        created++;
+      } catch (e) {
+        errors.push({ row: i + 1, error: e instanceof Error ? e.message : 'failed' });
+      }
+    }
+    return { created, failed: errors.length, errors: errors.slice(0, 50) };
+  }
+
   async create(dto: CreateLeadDto, opts?: { createdBy?: string; sourceId?: string }) {
     const tenantId = this.ctx.tenantId!;
     const year = new Date().getFullYear();

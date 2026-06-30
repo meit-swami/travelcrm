@@ -1,9 +1,11 @@
 import Link from 'next/link';
-import { Download } from 'lucide-react';
+import { Download, FileText } from 'lucide-react';
 import { getAccessToken } from '@/lib/session';
 import { api } from '@/lib/api';
 import { appUrl } from '@/lib/client';
 import { Card } from '@/components/ui/card';
+import { PageHeader } from '@/components/page-header';
+import { Avatar } from '@/components/avatar';
 
 const fmtMoney = (amt: string, cur = 'INR') =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: cur, maximumFractionDigits: 0 }).format(Number(amt));
@@ -23,13 +25,10 @@ export default async function QuotationsPage() {
 
   return (
     <div className="p-8">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Quotations</h1>
-        <p className="text-sm text-muted-foreground">{quotes.length} quotation(s)</p>
-      </header>
-      <Card className="overflow-hidden">
+      <PageHeader icon={FileText} title="Quotations" subtitle={`${quotes.length} quotation(s)`} />
+      <Card className="overflow-hidden shadow-sm">
         <table className="w-full text-sm">
-          <thead className="border-b border-border bg-muted/50 text-left text-xs uppercase text-muted-foreground">
+          <thead className="border-b border-border bg-muted/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-medium">Ref</th>
               <th className="px-4 py-3 font-medium">Title</th>
@@ -44,11 +43,15 @@ export default async function QuotationsPage() {
               <tr><td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">No quotations yet.</td></tr>
             )}
             {quotes.map((q) => (
-              <tr key={q.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+              <tr key={q.id} className="border-b border-border last:border-0 transition-colors hover:bg-primary/5">
                 <td className="px-4 py-3 font-mono text-xs">{q.referenceCode}</td>
                 <td className="px-4 py-3 font-medium">{q.title}</td>
                 <td className="px-4 py-3">
-                  {q.lead ? <Link href={`/leads/${q.lead.id}`} className="text-primary hover:underline">{q.lead.name}</Link> : '—'}
+                  {q.lead ? (
+                    <Link href={`/leads/${q.lead.id}`} className="flex items-center gap-2 hover:underline">
+                      <Avatar name={q.lead.name} /> {q.lead.name}
+                    </Link>
+                  ) : '—'}
                 </td>
                 <td className="px-4 py-3">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[q.status] ?? 'bg-gray-100'}`}>{q.status}</span>

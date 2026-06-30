@@ -37,7 +37,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
       </aside>
       <div className="flex flex-1 flex-col">
         <MobileNav />
-        <main className="flex-1 bg-muted/20">{children}</main>
+        <main className="flex-1 bg-gradient-to-b from-muted/50 to-muted/20">{children}</main>
       </div>
     </div>
   );

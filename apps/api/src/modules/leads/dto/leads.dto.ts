@@ -1,4 +1,6 @@
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsEmail,
   IsEnum,
@@ -8,7 +10,9 @@ import {
   IsOptional,
   IsString,
   Min,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { LeadStage, LeadStatus } from '@travelos/types';
 
 const STAGES = Object.values(LeadStage);
@@ -34,6 +38,14 @@ export class CreateLeadDto {
   @IsOptional() @IsString() assignedUserId?: string;
   @IsOptional() @IsString() assignedTeamId?: string;
   @IsOptional() @IsObject() metadata?: Record<string, unknown>;
+}
+
+export class ImportLeadsDto {
+  @IsArray()
+  @ArrayMaxSize(2000)
+  @ValidateNested({ each: true })
+  @Type(() => CreateLeadDto)
+  leads!: CreateLeadDto[];
 }
 
 export class UpdateLeadDto {
