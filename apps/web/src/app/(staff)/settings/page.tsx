@@ -2,11 +2,13 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 
 const SECTIONS = [
+  { href: '/settings/access', title: 'My Access', desc: 'Your role & permissions', emoji: '🔑' },
   { href: '/settings/appearance', title: 'Appearance', desc: 'Theme & colour palettes', emoji: '🎨' },
   { href: '/settings/users', title: 'Users', desc: 'Team members & access', emoji: '👥' },
   { href: '/settings/sources', title: 'Lead Sources & Rules', desc: 'Capture sources, assignment', emoji: '🎯' },
   { href: '/settings/email', title: 'Email & Automation', desc: 'Templates and delivery logs', emoji: '✉️' },
   { href: '/settings/audit', title: 'Audit Log', desc: 'Every action, who & when', emoji: '🛡️' },
+  { href: '/settings/project-status', title: 'Project Status', desc: 'Modules done & remaining', emoji: '📊' },
 ];
 
 export default function SettingsPage() {

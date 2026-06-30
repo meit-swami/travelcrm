@@ -12,6 +12,7 @@ import {
   ALL_PERMISSIONS,
   SystemRole,
 } from '@travelos/types';
+import { seedDemoData } from './seed-demo';
 
 const prisma = new PrismaClient();
 
@@ -234,6 +235,14 @@ async function main() {
   if (demo) await seedTenantEmail(demo);
   const bootstrap = await seedBootstrap();
   if (bootstrap) await seedTenantEmail(bootstrap);
+
+  // Optional rich demo dataset (leads, quotations, bookings, payments, chats).
+  // Enable with SEED_DEMO=true; applied to the demo and/or bootstrap tenant.
+  if (process.env.SEED_DEMO === 'true') {
+    const target = bootstrap ?? demo;
+    if (target) await seedDemoData(prisma, target);
+    else console.log('• SEED_DEMO set but no tenant to seed.');
+  }
 }
 
 main()

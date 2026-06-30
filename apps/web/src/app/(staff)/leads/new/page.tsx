@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ApiError } from '@/lib/api';
 import { clientFetch } from '@/lib/client';
+import { randomLead } from '@/lib/demo-fill';
+import { FillTestData } from '@/components/fill-test-data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,7 +51,10 @@ export default function NewLeadPage() {
     <div className="p-8">
       <h1 className="mb-6 text-2xl font-semibold tracking-tight">New Lead</h1>
       <Card className="max-w-lg">
-        <CardHeader><CardTitle className="text-base">Lead details</CardTitle></CardHeader>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-base">Lead details</CardTitle>
+          <FillTestData onFill={() => setForm({ ...form, ...randomLead() })} />
+        </CardHeader>
         <CardContent>
           <form onSubmit={submit} className="space-y-4">
             <Field label="Name *"><Input value={form.name} onChange={set('name')} required /></Field>
