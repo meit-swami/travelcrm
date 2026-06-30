@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Plane } from 'lucide-react';
 import { clientFetch } from '@/lib/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function PortalLoginPage() {
   const router = useRouter();
@@ -63,14 +64,17 @@ export default function PortalLoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl">Your Trip</CardTitle>
-          <CardDescription>
+      <Card className="w-full max-w-sm overflow-hidden">
+        <div className="theme-gradient px-6 py-8 text-white">
+          <div className="flex items-center gap-2 text-sm font-medium text-white/80">
+            <Plane className="h-4 w-4" /> TravelOS
+          </div>
+          <h1 className="mt-3 text-2xl font-bold">Your Trip Portal</h1>
+          <p className="mt-1 text-sm text-white/80">
             {step === 'phone' ? 'Sign in with your phone number' : `Enter the code sent to ${phone}`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </p>
+        </div>
+        <CardContent className="pt-6">
           {step === 'phone' ? (
             <form onSubmit={requestOtp} className="space-y-4">
               <div className="space-y-1.5">

@@ -3,7 +3,7 @@
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plane, Sparkles, ShieldCheck, BarChart3 } from 'lucide-react';
-import { clientFetch } from '@/lib/client';
+import { clientFetch, appUrl } from '@/lib/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -50,7 +50,7 @@ function LoginScreen() {
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
       {/* Brand panel */}
-      <div className="relative hidden overflow-hidden bg-gradient-to-br from-indigo-600 via-blue-600 to-sky-500 lg:flex lg:flex-col lg:justify-between lg:p-12 lg:text-white">
+      <div className="theme-gradient relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between lg:p-12 lg:text-white">
         <div className="flex items-center gap-2 text-lg font-semibold">
           <Plane className="h-6 w-6" /> TravelOS&nbsp;AI
         </div>
@@ -108,7 +108,7 @@ function LoginScreen() {
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
             Customer?{' '}
-            <a href="/portal/login" className="font-medium text-primary hover:underline">Go to the trip portal →</a>
+            <a href={appUrl('/portal/login')} className="font-medium text-primary hover:underline">Go to the trip portal →</a>
           </p>
         </div>
       </div>

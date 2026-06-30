@@ -18,6 +18,69 @@
     --input: 214 32% 91%;
     --ring: 222 89% 55%;
     --radius: 0.6rem;
+
+    /* Brand gradient stops — drive the marketing/portal panels and accents.
+       Overridden per palette below (see [data-theme="…"]). */
+    --brand-from: 243 75% 59%;
+    --brand-via: 217 91% 60%;
+    --brand-to: 199 89% 48%;
+    /* Soft tint used for subtle colored surfaces (hover, chips). */
+    --accent-soft: 222 89% 96%;
+  }
+
+  /* ── Colour palettes ─────────────────────────────────────────────────────
+     Each only re-tints the primary, focus ring and brand gradient, so every
+     ShadCN component (buttons, links, rings) and the gradient panels recolour
+     together. Selected via <html data-theme="…"> (see ThemeInit + Appearance
+     settings). The default (no attribute) is the Indigo palette in :root. */
+  [data-theme='emerald'] {
+    --primary: 160 84% 32%;
+    --primary-foreground: 152 76% 96%;
+    --ring: 160 84% 32%;
+    --brand-from: 160 84% 39%;
+    --brand-via: 173 80% 36%;
+    --brand-to: 142 71% 45%;
+    --accent-soft: 152 60% 95%;
+  }
+
+  [data-theme='violet'] {
+    --primary: 262 83% 58%;
+    --primary-foreground: 270 60% 98%;
+    --ring: 262 83% 58%;
+    --brand-from: 262 83% 58%;
+    --brand-via: 271 81% 56%;
+    --brand-to: 292 84% 61%;
+    --accent-soft: 270 70% 96%;
+  }
+
+  [data-theme='rose'] {
+    --primary: 346 77% 50%;
+    --primary-foreground: 350 80% 98%;
+    --ring: 346 77% 50%;
+    --brand-from: 346 77% 50%;
+    --brand-via: 333 71% 51%;
+    --brand-to: 0 84% 60%;
+    --accent-soft: 346 80% 96%;
+  }
+
+  [data-theme='amber'] {
+    --primary: 28 92% 42%;
+    --primary-foreground: 40 90% 97%;
+    --ring: 28 92% 42%;
+    --brand-from: 38 92% 50%;
+    --brand-via: 25 95% 53%;
+    --brand-to: 350 89% 60%;
+    --accent-soft: 36 90% 95%;
+  }
+
+  [data-theme='ocean'] {
+    --primary: 200 98% 39%;
+    --primary-foreground: 200 80% 98%;
+    --ring: 200 98% 39%;
+    --brand-from: 192 91% 36%;
+    --brand-via: 200 98% 39%;
+    --brand-to: 217 91% 60%;
+    --accent-soft: 200 90% 95%;
   }
 
   .dark {
@@ -25,13 +88,11 @@
     --foreground: 210 40% 98%;
     --card: 222 47% 11%;
     --card-foreground: 210 40% 98%;
-    --primary: 217 91% 60%;
     --primary-foreground: 222 47% 11%;
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
     --border: 217 33% 20%;
     --input: 217 33% 20%;
-    --ring: 224 76% 60%;
   }
 
   * {
@@ -39,5 +100,33 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  /* Brand gradient surface (diagonal) — login panel, portal header, etc. */
+  .theme-gradient {
+    background-image: linear-gradient(
+      135deg,
+      hsl(var(--brand-from)),
+      hsl(var(--brand-via)),
+      hsl(var(--brand-to))
+    );
+  }
+  /* Gradient applied to text. */
+  .theme-gradient-text {
+    background-image: linear-gradient(
+      90deg,
+      hsl(var(--brand-from)),
+      hsl(var(--brand-via)),
+      hsl(var(--brand-to))
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* Subtle tinted surface in the active palette colour. */
+  .accent-soft {
+    background-color: hsl(var(--accent-soft));
   }
 }

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 
 const SECTIONS = [
+  { href: '/settings/appearance', title: 'Appearance', desc: 'Theme & colour palettes', emoji: '🎨' },
   { href: '/settings/users', title: 'Users', desc: 'Team members & access', emoji: '👥' },
   { href: '/settings/sources', title: 'Lead Sources & Rules', desc: 'Capture sources, assignment', emoji: '🎯' },
   { href: '/settings/email', title: 'Email & Automation', desc: 'Templates and delivery logs', emoji: '✉️' },

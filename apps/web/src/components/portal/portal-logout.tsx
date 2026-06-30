@@ -11,7 +11,7 @@ export function PortalLogout() {
     router.refresh();
   }
   return (
-    <button onClick={logout} className="text-xs text-muted-foreground hover:underline">
+    <button onClick={logout} className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-white/25">
       Sign out
     </button>
   );
