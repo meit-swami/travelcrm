@@ -1,5 +1,10 @@
-// Creates the travelcrm_app RLS role after migrations.
-// Password is parsed from APP_DATABASE_URL; uses DATABASE_URL (privileged).
+// Creates (or updates) the travelcrm_app RLS role after migrations, then applies
+// the GRANTs from roles.sql. Uses DATABASE_URL (privileged); the role name and
+// password come from APP_DATABASE_URL.
+//
+// We build the CREATE/ALTER ROLE statement in JS rather than relying on psql's
+// `:'app_password'` substitution + `\gexec` (node-postgres can't run those), and
+// strip that psql-only block out of roles.sql before sending the rest.
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,19 +17,27 @@ if (!appUrl) {
   process.exit(0);
 }
 
-const password = decodeURIComponent(new URL(appUrl).password);
-const sql = readFileSync(join(__dirname, 'roles.sql'), 'utf8')
-  .replace(/\\gexec/g, '')
-  .replace(
-    /SELECT format\('CREATE ROLE travelcrm_app LOGIN NOBYPASSRLS PASSWORD %L', :'app_password'\)\s*WHERE NOT EXISTS \(SELECT 1 FROM pg_roles WHERE rolname = 'travelcrm_app'\);/,
-    `DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'travelcrm_app') THEN
-    EXECUTE format('CREATE ROLE travelcrm_app LOGIN NOBYPASSRLS PASSWORD %L', '${password.replace(/'/g, "''")}');
+const parsed = new URL(appUrl);
+const username = decodeURIComponent(parsed.username) || 'travelcrm_app';
+const password = decodeURIComponent(parsed.password);
+const lit = (s) => s.replace(/'/g, "''");
+
+// Drop the psql-specific role-creation block (SELECT format(... :'app_password' ...)
+// ... \gexec) and any stray \gexec; we create the role programmatically below. The
+// remaining statements are the static GRANTs, which reference travelcrm_app by name.
+const grants = readFileSync(join(__dirname, 'roles.sql'), 'utf8')
+  .replace(/SELECT\s+format\([\s\S]*?\\gexec/m, '')
+  .replace(/\\gexec/g, '');
+
+const createRole = `DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${lit(username)}') THEN
+    EXECUTE format('CREATE ROLE %I LOGIN NOBYPASSRLS PASSWORD %L', '${lit(username)}', '${lit(password)}');
   ELSE
-    EXECUTE format('ALTER ROLE travelcrm_app WITH LOGIN PASSWORD %L', '${password.replace(/'/g, "''")}');
+    EXECUTE format('ALTER ROLE %I WITH LOGIN NOBYPASSRLS PASSWORD %L', '${lit(username)}', '${lit(password)}');
   END IF;
-END $$;`,
-  );
+END $$;`;
+
+const sql = `${createRole}\n${grants}`;
 
 const client = makePgClient(process.env.DATABASE_URL);
 
