@@ -46,7 +46,7 @@ const MODULES: Module[] = [
       { name: 'Quotation builder + versioning', status: 'done' },
       { name: 'Accept / reject / expiry flow', status: 'done' },
       { name: 'Quotation → booking conversion', status: 'done' },
-      { name: 'True PDF rendering', status: 'planned', note: 'HTML ready; headless-Chrome render pending' },
+      { name: 'True PDF rendering (vouchers)', status: 'done', note: 'headless Chromium; HTML fallback' },
     ],
   },
   {

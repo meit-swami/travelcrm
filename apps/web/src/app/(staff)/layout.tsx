@@ -4,6 +4,7 @@ import { getAccessToken } from '@/lib/session';
 import { api } from '@/lib/api';
 import { LogoutButton } from '@/components/logout-button';
 import { StaffNav } from '@/components/staff-nav';
+import { MobileNav } from '@/components/mobile-nav';
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const token = await getAccessToken();
@@ -34,7 +35,10 @@ export default async function StaffLayout({ children }: { children: React.ReactN
           <LogoutButton />
         </div>
       </aside>
-      <main className="flex-1 bg-muted/20">{children}</main>
+      <div className="flex flex-1 flex-col">
+        <MobileNav />
+        <main className="flex-1 bg-muted/20">{children}</main>
+      </div>
     </div>
   );
 }

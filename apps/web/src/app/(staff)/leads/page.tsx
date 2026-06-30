@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { LayoutGrid } from 'lucide-react';
 import { getAccessToken } from '@/lib/session';
 import { api, STAGE_LABELS } from '@/lib/api';
 import { Card } from '@/components/ui/card';
@@ -28,7 +29,10 @@ export default async function LeadsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Leads</h1>
           <p className="text-sm text-muted-foreground">{leads.length} lead(s) in your pipeline</p>
         </div>
-        <Link href="/leads/new"><Button>+ New Lead</Button></Link>
+        <div className="flex gap-2">
+          <Link href="/leads/board"><Button variant="outline" className="gap-1.5"><LayoutGrid className="h-4 w-4" /> Board</Button></Link>
+          <Link href="/leads/new"><Button>+ New Lead</Button></Link>
+        </div>
       </header>
 
       <Card className="overflow-hidden">

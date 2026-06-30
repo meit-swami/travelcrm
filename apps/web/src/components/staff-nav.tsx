@@ -2,36 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  LayoutDashboard,
-  Users,
-  Phone,
-  FileText,
-  Settings,
-  Briefcase,
-  Truck,
-  BarChart3,
-} from 'lucide-react';
-
-const NAV = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/leads', label: 'Leads', icon: Briefcase },
-  { href: '/conversations', label: 'Conversations', icon: Phone },
-  { href: '/quotations', label: 'Quotations', icon: FileText },
-  { href: '/operations', label: 'Operations', icon: Truck },
-  { href: '/reports', label: 'Reports', icon: BarChart3 },
-  { href: '/settings/users', label: 'Users', icon: Users },
-  { href: '/settings', label: 'Settings', icon: Settings },
-];
+import { STAFF_NAV, isActive } from './staff-nav-items';
 
 export function StaffNav() {
   const pathname = usePathname();
-  const path = pathname.replace(/^\/travelcrm/, '') || '/';
 
   return (
     <nav className="flex-1 space-y-1 px-3">
-      {NAV.map(({ href, label, icon: Icon }) => {
-        const active = href === '/settings' ? path === '/settings' : path.startsWith(href);
+      {STAFF_NAV.map(({ href, label, icon: Icon }) => {
+        const active = isActive(pathname, href);
         return (
           <Link
             key={href}
