@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { getAccessToken } from '@/lib/session';
 import { api } from '@/lib/api';
 import { Card } from '@/components/ui/card';
@@ -44,7 +45,11 @@ export default async function OperationsPage() {
             )}
             {bookings.map((b) => (
               <tr key={b.id} className="border-b border-border last:border-0 hover:bg-muted/30">
-                <td className="px-4 py-3 font-mono text-xs">{b.referenceCode}</td>
+                <td className="px-4 py-3 font-mono text-xs">
+                  <Link href={`/operations/${b.id}`} className="text-primary hover:underline">
+                    {b.referenceCode}
+                  </Link>
+                </td>
                 <td className="px-4 py-3 font-medium">{b.lead?.name ?? '—'}</td>
                 <td className="px-4 py-3">{b.destination ?? '—'}</td>
                 <td className="px-4 py-3">

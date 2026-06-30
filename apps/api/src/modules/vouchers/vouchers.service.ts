@@ -92,6 +92,17 @@ export class VouchersService {
     return voucher;
   }
 
+  /** Fetch the stored voucher document bytes for streaming to the browser. */
+  async getFileStream(id: string): Promise<{ body: Buffer; contentType: string; filename: string }> {
+    const voucher = await this.prisma.db.voucher.findFirst({ where: { id } });
+    if (!voucher?.pdfFileId)
+      throw new NotFoundException({ code: 'NOT_FOUND', error: 'Voucher not generated' });
+    const file = await this.prisma.db.file.findFirst({ where: { id: voucher.pdfFileId } });
+    if (!file) throw new NotFoundException({ code: 'NOT_FOUND', error: 'File missing' });
+    const obj = await this.storage.getObject(file.objectKey);
+    return { body: obj.body, contentType: file.contentType, filename: file.filename };
+  }
+
   async getDownloadUrl(id: string): Promise<{ url: string }> {
     const voucher = await this.prisma.db.voucher.findFirst({ where: { id } });
     if (!voucher?.pdfFileId) throw new NotFoundException({ code: 'NOT_FOUND', error: 'Voucher not generated' });

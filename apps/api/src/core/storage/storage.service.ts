@@ -51,6 +51,22 @@ export class StorageService {
     );
   }
 
+  /**
+   * Fetch an object's bytes + content type. Used to stream private files through
+   * the app (so the browser never needs to reach the storage host directly —
+   * important when MinIO is only on the internal network).
+   */
+  async getObject(key: string): Promise<{ body: Buffer; contentType: string }> {
+    const res = await this.client.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
+    const bytes = await res.Body!.transformToByteArray();
+    return {
+      body: Buffer.from(bytes),
+      contentType: res.ContentType ?? 'application/octet-stream',
+    };
+  }
+
   /** Presigned URL for downloading a private object. */
   async getDownloadUrl(key: string, expiresInSeconds = 300): Promise<string> {
     return getSignedUrl(

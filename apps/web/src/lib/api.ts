@@ -156,6 +156,25 @@ export const api = {
       { token },
     ),
 
+  getBooking: (token: string, id: string) =>
+    request<{
+      id: string;
+      referenceCode: string;
+      destination: string | null;
+      opsStage: string;
+      totalValue: string;
+      currency: string;
+      travelStart: string | null;
+      travelEnd: string | null;
+      paxAdults: number;
+      paxChildren: number;
+      lead: { id: string; name: string; phone: string | null } | null;
+      operationTasks: Array<{ id: string; title: string; status: string }>;
+      hotelBookings: Array<{ id: string; hotelName: string; roomType: string | null }>;
+      transportBookings: Array<{ id: string; vehicleType: string | null }>;
+      vouchers: Array<{ id: string; referenceCode: string; type: string; status: string; createdAt: string }>;
+    }>(`/bookings/${id}`, { token }),
+
   listQuotations: (token: string, status?: string) =>
     request<Array<{ id: string; referenceCode: string; title: string; status: string; totalAmount: string; currency: string; createdAt: string; lead: { id: string; name: string } | null }>>(
       `/quotations${status ? `?status=${status}` : ''}`,
