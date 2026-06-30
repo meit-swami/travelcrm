@@ -20,10 +20,14 @@ RUN pnpm --filter @travelos/types build \
 
 # ── Runtime stage ──
 FROM node:22-slim AS runtime
-RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
+# chromium + fonts power server-side PDF rendering (vouchers/quotations). If this
+# layer is ever a problem it can be removed — PdfService falls back to HTML.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  openssl ca-certificates chromium fonts-liberation \
   && rm -rf /var/lib/apt/lists/*
 WORKDIR /app/apps/api
 ENV NODE_ENV=production
+ENV CHROMIUM_PATH=/usr/bin/chromium
 
 # Copy the whole built workspace so the generated Prisma client, the Prisma CLI
 # (for `migrate deploy`), pnpm symlinks and the @travelos/types workspace package

@@ -5,6 +5,7 @@ import { TenantContext } from '../../core/tenancy/tenant-context';
 import { AuditService } from '../../core/audit';
 import { StorageService } from '../../core/storage/storage.service';
 import { ReferenceCodeService } from '../../core/common/reference-code.service';
+import { PdfService } from '../../core/pdf';
 import type { GenerateVoucherDto } from './dto/vouchers.dto';
 
 /**
@@ -20,6 +21,7 @@ export class VouchersService {
     private readonly audit: AuditService,
     private readonly storage: StorageService,
     private readonly refCodes: ReferenceCodeService,
+    private readonly pdf: PdfService,
   ) {}
 
   listForBooking(bookingId: string) {
@@ -48,17 +50,23 @@ export class VouchersService {
     };
 
     const html = this.renderHtml(referenceCode, dto.type, payload);
-    const key = this.storage.buildKey(tenantId, 'voucher', `${referenceCode}.html`);
-    await this.storage.putObject(key, html, 'text/html');
+
+    // Render a real PDF when Chromium is available; otherwise store the HTML.
+    const pdf = await this.pdf.fromHtml(html);
+    const ext = pdf ? 'pdf' : 'html';
+    const contentType = pdf ? 'application/pdf' : 'text/html';
+    const body: Buffer | string = pdf ?? html;
+    const key = this.storage.buildKey(tenantId, 'voucher', `${referenceCode}.${ext}`);
+    await this.storage.putObject(key, body, contentType);
 
     const file = await this.prisma.db.file.create({
       data: {
         tenantId,
         bucket: 'travelos',
         objectKey: key,
-        filename: `${referenceCode}.html`,
-        contentType: 'text/html',
-        sizeBytes: BigInt(Buffer.byteLength(html)),
+        filename: `${referenceCode}.${ext}`,
+        contentType,
+        sizeBytes: BigInt(pdf ? pdf.length : Buffer.byteLength(html)),
         category: 'voucher',
         ownerResourceType: 'booking',
         ownerResourceId: bookingId,

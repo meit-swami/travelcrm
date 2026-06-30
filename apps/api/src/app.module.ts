@@ -14,6 +14,7 @@ import { PermissionGuard } from './core/rbac/permission.guard';
 import { AuditModule } from './core/audit';
 import { AllExceptionsFilter } from './core/common';
 import { HealthModule } from './core/health/health.module';
+import { PdfModule } from './core/pdf';
 
 import { AuthModule } from './modules/auth/auth.module';
 import { AuthGuard } from './modules/auth/auth.guard';
@@ -47,6 +48,7 @@ import { SystemModule } from './modules/system/system.module';
     RbacModule,
     AuditModule,
     HealthModule,
+    PdfModule,
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
 
     // Domain modules
