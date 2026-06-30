@@ -99,6 +99,14 @@ export const api = {
       { token },
     ),
 
+  integrationsStatus: (token: string) =>
+    request<
+      Record<
+        string,
+        { configured: boolean; provider?: string; envKeys: string[] }
+      >
+    >('/integrations/status', { token }),
+
   listLeads: (token: string, params?: Record<string, string>) => {
     const qs = params ? `?${new URLSearchParams(params).toString()}` : '';
     return request<{

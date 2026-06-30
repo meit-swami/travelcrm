@@ -7,6 +7,7 @@ const SECTIONS = [
   { href: '/settings/users', title: 'Users', desc: 'Team members & access', emoji: '👥' },
   { href: '/settings/sources', title: 'Lead Sources & Rules', desc: 'Capture sources, assignment', emoji: '🎯' },
   { href: '/settings/email', title: 'Email & Automation', desc: 'Templates and delivery logs', emoji: '✉️' },
+  { href: '/settings/integrations', title: 'Integrations', desc: 'AI, payments, WhatsApp, email', emoji: '🔌' },
   { href: '/settings/audit', title: 'Audit Log', desc: 'Every action, who & when', emoji: '🛡️' },
   { href: '/settings/project-status', title: 'Project Status', desc: 'Modules done & remaining', emoji: '📊' },
 ];

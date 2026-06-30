@@ -33,6 +33,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { PortalModule } from './modules/portal/portal.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
+import { SystemModule } from './modules/system/system.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     PortalModule, // Phase 4
     ReportsModule, // Phase 5
     SchedulerModule, // Phase 6
+    SystemModule, // Integrations status
   ],
   providers: [
     // Guard order: rate-limit → authenticate → authorize.
