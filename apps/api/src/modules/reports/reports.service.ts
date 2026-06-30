@@ -92,11 +92,34 @@ export class ReportsService {
   }
 
   async dashboard() {
-    const [funnel, conversion, revenueByDest] = await Promise.all([
-      this.leadFunnel(),
-      this.conversion(),
-      this.revenue('destination'),
-    ]);
-    return { funnel, conversion, topDestinations: revenueByDest.slice(0, 5) };
+    const db = this.db;
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const [funnel, conversion, revenueByDest, quotationsSent, confirmedTrips, paidThisMonth] =
+      await Promise.all([
+        this.leadFunnel(),
+        this.conversion(),
+        this.revenue('destination'),
+        db.quotation.count({ where: { status: { in: ['sent', 'viewed', 'accepted'] } } }),
+        db.booking.count({ where: { opsStage: { not: 'cancelled' } } }),
+        db.payment.aggregate({
+          _sum: { amount: true },
+          where: { status: 'paid', paidAt: { gte: monthStart } },
+        }),
+      ]);
+
+    return {
+      funnel,
+      conversion,
+      topDestinations: revenueByDest.slice(0, 5),
+      kpis: {
+        openLeads: conversion.total - conversion.won - conversion.lost,
+        quotationsSent,
+        confirmedTrips,
+        revenueMtd: Number(paidThisMonth._sum.amount ?? 0),
+      },
+    };
   }
 }

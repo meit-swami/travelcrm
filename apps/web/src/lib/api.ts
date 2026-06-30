@@ -66,6 +66,14 @@ export const api = {
       body: JSON.stringify({ refreshToken }),
     }),
 
+  dashboard: (token: string) =>
+    request<{
+      funnel: { stage: string; count: number }[];
+      conversion: { total: number; won: number; lost: number; conversionRate: number };
+      topDestinations: { key: string; revenue: number }[];
+      kpis: { openLeads: number; quotationsSent: number; confirmedTrips: number; revenueMtd: number };
+    }>('/reports/dashboard', { token }),
+
   listLeads: (token: string, params?: Record<string, string>) => {
     const qs = params ? `?${new URLSearchParams(params).toString()}` : '';
     return request<{
