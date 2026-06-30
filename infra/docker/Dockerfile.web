@@ -15,7 +15,11 @@ RUN mkdir -p apps/web/public
 ARG NEXT_PUBLIC_BASE_PATH=
 ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN pnpm --filter @travelos/web build
+# Build the shared types package first — the web app imports @travelos/types
+# (e.g. the My Access page reads the permission catalogue), which resolves to
+# its compiled dist/.
+RUN pnpm --filter @travelos/types build \
+  && pnpm --filter @travelos/web build
 
 # ── Runtime stage (Next.js standalone) ──
 FROM node:22-slim AS runtime
