@@ -5,6 +5,7 @@ import { PrismaService } from '../../core/database/prisma.service';
 import { TenantContext } from '../../core/tenancy/tenant-context';
 import { AuditService } from '../../core/audit';
 import { ReferenceCodeService } from '../../core/common/reference-code.service';
+import { PdfService, renderDocumentHtml } from '../../core/pdf';
 import { PaymentGateway } from '../../integrations/payments/payment.gateway';
 import type { CreateInvoiceDto, RecordPaymentDto } from './dto/payments.dto';
 
@@ -22,12 +23,49 @@ export class PaymentsService {
     private readonly refCodes: ReferenceCodeService,
     private readonly gateway: PaymentGateway,
     private readonly events: EventEmitter2,
+    private readonly pdf: PdfService,
   ) {}
 
   // ─────────────────────────────── Invoices ───────────────────────────────
 
   listInvoices(bookingId: string) {
     return this.prisma.db.invoice.findMany({ where: { bookingId }, orderBy: { createdAt: 'desc' } });
+  }
+
+  /** Render an invoice as a downloadable PDF/HTML document. */
+  async renderInvoice(id: string): Promise<{ body: Buffer; contentType: string; filename: string }> {
+    const invoice = await this.prisma.db.invoice.findFirst({
+      where: { id },
+      include: { booking: { include: { lead: { select: { name: true, phone: true, email: true } } } } },
+    });
+    if (!invoice) throw new NotFoundException({ code: 'NOT_FOUND', error: 'Invoice not found' });
+
+    const html = renderDocumentHtml({
+      docType: 'Invoice',
+      ref: invoice.invoiceNo,
+      party: {
+        name: invoice.booking?.lead?.name,
+        phone: invoice.booking?.lead?.phone,
+        email: invoice.booking?.lead?.email,
+      },
+      destination: invoice.booking?.destination ?? null,
+      lineItems: (invoice.lineItems as Array<Record<string, unknown>>) ?? [],
+      subtotal: Number(invoice.subtotal),
+      tax: Number(invoice.tax),
+      discount: Number(invoice.discount),
+      total: Number(invoice.total),
+      amountPaid: Number(invoice.amountPaid),
+      currency: invoice.currency,
+      meta: [
+        { label: 'Status', value: invoice.status },
+        ...(invoice.dueDate ? [{ label: 'Due date', value: invoice.dueDate.toISOString().slice(0, 10) }] : []),
+      ],
+    });
+
+    const pdf = await this.pdf.fromHtml(html);
+    return pdf
+      ? { body: pdf, contentType: 'application/pdf', filename: `${invoice.invoiceNo}.pdf` }
+      : { body: Buffer.from(html, 'utf8'), contentType: 'text/html', filename: `${invoice.invoiceNo}.html` };
   }
 
   async createInvoice(bookingId: string, dto: CreateInvoiceDto) {

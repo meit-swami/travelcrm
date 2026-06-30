@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Res, StreamableFile } from '@nestjs/common';
+import type { Response } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Can } from '../../core/rbac';
 import { QuotationsService } from './quotations.service';
@@ -32,6 +33,17 @@ export class QuotationsController {
   @Can('quotation.read_own')
   get(@Param('id') id: string) {
     return this.quotations.get(id);
+  }
+
+  @Get('quotations/:id/document')
+  @Can('quotation.read_own')
+  async document(
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const f = await this.quotations.renderDocument(id);
+    res.set({ 'Content-Type': f.contentType, 'Content-Disposition': `attachment; filename="${f.filename}"` });
+    return new StreamableFile(f.body);
   }
 
   @Post('quotations/:id/versions')

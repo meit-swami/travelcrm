@@ -5,6 +5,7 @@ import { PrismaService } from '../../core/database/prisma.service';
 import { TenantContext } from '../../core/tenancy/tenant-context';
 import { AuditService } from '../../core/audit';
 import { ReferenceCodeService } from '../../core/common/reference-code.service';
+import { PdfService, renderDocumentHtml } from '../../core/pdf';
 import { LeadsService } from '../leads/leads.service';
 import { BookingsService } from '../operations/bookings.service';
 import type { AddVersionDto, CreateQuotationDto, RejectQuotationDto } from './dto/quotations.dto';
@@ -30,7 +31,41 @@ export class QuotationsService {
     private readonly leads: LeadsService,
     private readonly events: EventEmitter2,
     private readonly bookings: BookingsService,
+    private readonly pdf: PdfService,
   ) {}
+
+  /** Render the quotation (current version) as a downloadable PDF/HTML document. */
+  async renderDocument(id: string): Promise<{ body: Buffer; contentType: string; filename: string }> {
+    const quotation = await this.prisma.db.quotation.findFirst({
+      where: { id },
+      include: { versions: { orderBy: { versionNo: 'asc' } }, lead: { select: { name: true, phone: true, email: true, destination: true } } },
+    });
+    if (!quotation) throw new NotFoundException({ code: 'NOT_FOUND', error: 'Quotation not found' });
+    const version =
+      quotation.versions.find((v) => v.id === quotation.currentVersionId) ??
+      quotation.versions[quotation.versions.length - 1];
+
+    const html = renderDocumentHtml({
+      docType: 'Quotation',
+      ref: quotation.referenceCode,
+      title: quotation.title,
+      party: { name: quotation.lead?.name, phone: quotation.lead?.phone, email: quotation.lead?.email },
+      destination: quotation.lead?.destination ?? null,
+      lineItems: (version?.lineItems as Array<Record<string, unknown>>) ?? [],
+      subtotal: Number(version?.subtotal ?? 0),
+      tax: Number(version?.tax ?? 0),
+      discount: Number(version?.discount ?? 0),
+      total: Number(version?.total ?? quotation.totalAmount),
+      currency: quotation.currency,
+      notes: version?.notes ?? null,
+      meta: [{ label: 'Status', value: quotation.status }],
+    });
+
+    const pdf = await this.pdf.fromHtml(html);
+    return pdf
+      ? { body: pdf, contentType: 'application/pdf', filename: `${quotation.referenceCode}.pdf` }
+      : { body: Buffer.from(html, 'utf8'), contentType: 'text/html', filename: `${quotation.referenceCode}.html` };
+  }
 
   listForLead(leadId: string) {
     return this.prisma.db.quotation.findMany({

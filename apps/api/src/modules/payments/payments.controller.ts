@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Res, StreamableFile } from '@nestjs/common';
+import type { Response } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Can } from '../../core/rbac';
 import { PaymentsService } from './payments.service';
@@ -20,6 +21,17 @@ export class PaymentsController {
   @Can('invoice.create')
   createInvoice(@Param('bookingId') bookingId: string, @Body() dto: CreateInvoiceDto) {
     return this.payments.createInvoice(bookingId, dto);
+  }
+
+  @Get('invoices/:id/document')
+  @Can('invoice.read_own')
+  async invoiceDocument(
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const f = await this.payments.renderInvoice(id);
+    res.set({ 'Content-Type': f.contentType, 'Content-Disposition': `attachment; filename="${f.filename}"` });
+    return new StreamableFile(f.body);
   }
 
   @Get('bookings/:bookingId/payments')

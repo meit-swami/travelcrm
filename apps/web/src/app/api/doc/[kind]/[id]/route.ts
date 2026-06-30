@@ -1,20 +1,26 @@
 import { API_BASE } from '@/lib/api';
 import { getAccessToken } from '@/lib/session';
 
-/**
- * Streams a voucher document (PDF/HTML) to the browser. The API reads it from
- * internal object storage and streams the bytes; we pipe them through so the
- * browser never needs to reach the storage host directly.
- */
+// Streams a generated document (PDF or HTML) from the API to the browser, so the
+// browser never needs to reach internal object storage. kind ∈ voucher | quotation | invoice.
+const ENDPOINT: Record<string, (id: string) => string> = {
+  voucher: (id) => `vouchers/${id}/file`,
+  quotation: (id) => `quotations/${id}/document`,
+  invoice: (id) => `invoices/${id}/document`,
+};
+
 export async function GET(
   _req: Request,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ kind: string; id: string }> },
 ): Promise<Response> {
+  const { kind, id } = await params;
+  const build = ENDPOINT[kind];
+  if (!build) return new Response('Unknown document type', { status: 404 });
+
   const token = await getAccessToken();
   if (!token) return new Response('Unauthorized', { status: 401 });
-  const { id } = await params;
 
-  const res = await fetch(`${API_BASE}/api/v1/vouchers/${id}/file`, {
+  const res = await fetch(`${API_BASE}/api/v1/${build(id)}`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
   });

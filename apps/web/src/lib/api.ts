@@ -173,6 +173,8 @@ export const api = {
       hotelBookings: Array<{ id: string; hotelName: string; roomType: string | null }>;
       transportBookings: Array<{ id: string; vehicleType: string | null }>;
       vouchers: Array<{ id: string; referenceCode: string; type: string; status: string; createdAt: string }>;
+      invoices: Array<{ id: string; invoiceNo: string; status: string; total: string; amountPaid: string; currency: string }>;
+      payments: Array<{ id: string; type: string; amount: string; status: string; currency: string; method: string | null }>;
     }>(`/bookings/${id}`, { token }),
 
   listQuotations: (token: string, status?: string) =>

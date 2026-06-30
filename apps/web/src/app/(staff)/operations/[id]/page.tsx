@@ -88,7 +88,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                     <div className="font-mono text-xs text-muted-foreground">{v.referenceCode}</div>
                   </div>
                   <a
-                    href={appUrl(`/api/voucher-download/${v.id}`)}
+                    href={appUrl(`/api/doc/voucher/${v.id}`)}
                     className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-muted"
                   >
                     <Download className="h-3.5 w-3.5" /> Download
@@ -99,6 +99,44 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
           </CardContent>
         </Card>
       </div>
+
+      {/* Invoices */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Invoices</CardTitle></CardHeader>
+        <CardContent>
+          {booking.invoices.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No invoices yet.</p>
+          ) : (
+            <div className="divide-y divide-border">
+              {booking.invoices.map((inv) => (
+                <div key={inv.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
+                  <div>
+                    <div className="font-mono text-sm font-medium">{inv.invoiceNo}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {fmtMoney(inv.amountPaid, inv.currency)} paid of {fmtMoney(inv.total, inv.currency)}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      inv.status === 'paid' ? 'bg-emerald-50 text-emerald-700'
+                        : inv.status === 'partially_paid' ? 'bg-amber-50 text-amber-700'
+                        : 'bg-muted text-muted-foreground'
+                    }`}>
+                      {inv.status.replace(/_/g, ' ')}
+                    </span>
+                    <a
+                      href={appUrl(`/api/doc/invoice/${inv.id}`)}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-muted"
+                    >
+                      <Download className="h-3.5 w-3.5" /> Download
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

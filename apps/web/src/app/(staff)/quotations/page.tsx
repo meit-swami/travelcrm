@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import { Download } from 'lucide-react';
 import { getAccessToken } from '@/lib/session';
 import { api } from '@/lib/api';
+import { appUrl } from '@/lib/client';
 import { Card } from '@/components/ui/card';
 
 const fmtMoney = (amt: string, cur = 'INR') =>
@@ -34,11 +36,12 @@ export default async function QuotationsPage() {
               <th className="px-4 py-3 font-medium">Customer</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium text-right">Total</th>
+              <th className="px-4 py-3 font-medium text-right">PDF</th>
             </tr>
           </thead>
           <tbody>
             {quotes.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">No quotations yet.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">No quotations yet.</td></tr>
             )}
             {quotes.map((q) => (
               <tr key={q.id} className="border-b border-border last:border-0 hover:bg-muted/30">
@@ -51,6 +54,15 @@ export default async function QuotationsPage() {
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[q.status] ?? 'bg-gray-100'}`}>{q.status}</span>
                 </td>
                 <td className="px-4 py-3 text-right font-semibold">{fmtMoney(q.totalAmount, q.currency)}</td>
+                <td className="px-4 py-3 text-right">
+                  <a
+                    href={appUrl(`/api/doc/quotation/${q.id}`)}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                    title="Download quotation PDF"
+                  >
+                    <Download className="h-3.5 w-3.5" /> PDF
+                  </a>
+                </td>
               </tr>
             ))}
           </tbody>

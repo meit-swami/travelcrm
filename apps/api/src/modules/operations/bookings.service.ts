@@ -76,6 +76,8 @@ export class BookingsService {
         hotelBookings: true,
         transportBookings: true,
         vouchers: true,
+        invoices: { orderBy: { createdAt: 'desc' } },
+        payments: { orderBy: { createdAt: 'desc' } },
         lead: { select: { id: true, name: true, phone: true } },
       },
     });
