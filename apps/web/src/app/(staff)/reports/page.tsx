@@ -3,6 +3,7 @@ import { getAccessToken } from '@/lib/session';
 import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExportCsv } from '@/components/export-csv';
+import { AiInsights } from '@/components/reports/ai-insights';
 
 const STAGE_LABELS: Record<string, string> = {
   new: 'New',
@@ -22,14 +23,17 @@ export default async function ReportsPage() {
   const token = await getAccessToken();
   if (!token) redirect('/login');
 
-  const [funnel, conversion, sources, employees, revByDest, revByMonth] = await Promise.all([
-    api.reportFunnel(token).catch(() => []),
-    api.reportConversion(token).catch(() => null),
-    api.reportSources(token).catch(() => []),
-    api.reportEmployees(token).catch(() => []),
-    api.reportRevenue(token, 'destination').catch(() => []),
-    api.reportRevenue(token, 'month').catch(() => []),
-  ]);
+  const [funnel, conversion, sources, employees, revByDest, revByMonth, insights] =
+    await Promise.all([
+      api.reportFunnel(token).catch(() => []),
+      api.reportConversion(token).catch(() => null),
+      api.reportSources(token).catch(() => []),
+      api.reportEmployees(token).catch(() => []),
+      api.reportRevenue(token, 'destination').catch(() => []),
+      api.reportRevenue(token, 'month').catch(() => []),
+      api.aiInsightsLatest(token).catch(() => []),
+    ]);
+  const initialNarrative = insights[0]?.output?.narrative ?? null;
 
   const funnelSorted = [...funnel].sort(
     (a, b) => STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage),
@@ -55,6 +59,9 @@ export default async function ReportsPage() {
           <KpiCard label="Conversion Rate" value={`${conversion.conversionRate}%`} tint="text-primary" />
         </div>
       )}
+
+      {/* AI insights */}
+      <AiInsights initialNarrative={initialNarrative} />
 
       {/* Lead funnel */}
       <Card>

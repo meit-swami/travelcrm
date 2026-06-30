@@ -93,6 +93,12 @@ export const api = {
   reportRevenue: (token: string, groupBy: 'destination' | 'month' = 'destination') =>
     request<{ key: string; revenue: number }[]>(`/reports/revenue?groupBy=${groupBy}`, { token }),
 
+  aiInsightsLatest: (token: string) =>
+    request<Array<{ id: string; createdAt: string; output: { narrative?: string } }>>(
+      '/ai-analytics/insights',
+      { token },
+    ),
+
   listLeads: (token: string, params?: Record<string, string>) => {
     const qs = params ? `?${new URLSearchParams(params).toString()}` : '';
     return request<{

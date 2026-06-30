@@ -90,7 +90,7 @@ const MODULES: Module[] = [
       { name: 'Dashboard KPIs & pipeline', status: 'done' },
       { name: 'Scheduler (reminders, expiry, SLAs)', status: 'done' },
       { name: 'Reports — charts & CSV exports', status: 'done' },
-      { name: 'AI loss / win analytics', status: 'partial', note: 'signals endpoint ready; UI pending' },
+      { name: 'AI loss / win analytics', status: 'done', note: 'stub provider; add OpenAI/Gemini key for richer output' },
     ],
   },
 ];
