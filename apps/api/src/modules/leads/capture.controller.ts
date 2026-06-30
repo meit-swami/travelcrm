@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   UnauthorizedException,
+  ValidationPipe,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Public } from '../../core/common';
@@ -32,7 +33,10 @@ export class CaptureController {
   @Post(':sourceId')
   async capture(
     @Param('sourceId') sourceId: string,
-    @Body() body: CaptureLeadDto,
+    // Tolerant pipe: external providers send many extra fields — strip them
+    // (whitelist) instead of rejecting (the global pipe forbids non-whitelisted).
+    @Body(new ValidationPipe({ whitelist: true, transform: true, transformOptions: { enableImplicitConversion: true } }))
+    body: CaptureLeadDto,
     @Headers('x-capture-secret') headerSecret?: string,
   ) {
     const source = await this.prisma.unscoped.leadSource.findUnique({ where: { id: sourceId } });

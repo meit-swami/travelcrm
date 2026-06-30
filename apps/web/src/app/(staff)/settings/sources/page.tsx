@@ -1,6 +1,9 @@
+import { Target } from 'lucide-react';
 import { getAccessToken } from '@/lib/session';
 import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/page-header';
+import { SourceManager } from '@/components/settings/source-manager';
 
 export default async function SourcesSettingsPage() {
   const token = await getAccessToken();
@@ -10,24 +13,16 @@ export default async function SourcesSettingsPage() {
 
   return (
     <div className="space-y-6 p-8">
-      <h1 className="text-2xl font-semibold tracking-tight">Lead Sources & Assignment</h1>
+      <PageHeader
+        icon={Target}
+        title="Lead Sources & Assignment"
+        subtitle="Connect website forms, Facebook/Zapier and more — each source gets a capture URL."
+      />
 
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm">Sources ({sources.length})</CardTitle></CardHeader>
-        <CardContent className="space-y-2">
-          {sources.length === 0 && <p className="text-sm text-muted-foreground">No sources configured.</p>}
-          {sources.map((s) => (
-            <div key={s.id} className="flex items-center justify-between rounded-md border border-border p-3 text-sm">
-              <div>
-                <div className="font-medium">{s.name}</div>
-                <span className="font-mono text-xs text-muted-foreground">{s.type}</span>
-              </div>
-              <div className="flex items-center gap-3 text-xs">
-                {s.secret && <code className="rounded bg-muted px-1.5 py-0.5">secret set</code>}
-                <span className={s.isActive ? 'text-green-700' : 'text-muted-foreground'}>{s.isActive ? 'active' : 'off'}</span>
-              </div>
-            </div>
-          ))}
+        <CardContent>
+          <SourceManager sources={sources} />
         </CardContent>
       </Card>
 
