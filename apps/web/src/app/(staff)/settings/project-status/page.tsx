@@ -89,8 +89,8 @@ const MODULES: Module[] = [
     items: [
       { name: 'Dashboard KPIs & pipeline', status: 'done' },
       { name: 'Scheduler (reminders, expiry, SLAs)', status: 'done' },
-      { name: 'Reports — charts & exports UI', status: 'planned', note: 'data endpoints ready; charts pending' },
-      { name: 'AI loss / win analytics', status: 'planned' },
+      { name: 'Reports — charts & CSV exports', status: 'done' },
+      { name: 'AI loss / win analytics', status: 'partial', note: 'signals endpoint ready; UI pending' },
     ],
   },
 ];

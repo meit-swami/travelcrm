@@ -10,6 +10,7 @@ import {
   Settings,
   Briefcase,
   Truck,
+  BarChart3,
 } from 'lucide-react';
 
 const NAV = [
@@ -18,6 +19,7 @@ const NAV = [
   { href: '/conversations', label: 'Conversations', icon: Phone },
   { href: '/quotations', label: 'Quotations', icon: FileText },
   { href: '/operations', label: 'Operations', icon: Truck },
+  { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/settings/users', label: 'Users', icon: Users },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];

@@ -74,6 +74,25 @@ export const api = {
       kpis: { openLeads: number; quotationsSent: number; confirmedTrips: number; revenueMtd: number };
     }>('/reports/dashboard', { token }),
 
+  reportFunnel: (token: string) =>
+    request<{ stage: string; count: number }[]>('/reports/lead-funnel', { token }),
+  reportConversion: (token: string) =>
+    request<{ total: number; won: number; lost: number; conversionRate: number }>(
+      '/reports/conversion',
+      { token },
+    ),
+  reportSources: (token: string) =>
+    request<{ source: string; total: number; won: number }[]>('/reports/source-performance', {
+      token,
+    }),
+  reportEmployees: (token: string) =>
+    request<{ user: string; handled: number; won: number; conversionRate: number }[]>(
+      '/reports/employee-performance',
+      { token },
+    ),
+  reportRevenue: (token: string, groupBy: 'destination' | 'month' = 'destination') =>
+    request<{ key: string; revenue: number }[]>(`/reports/revenue?groupBy=${groupBy}`, { token }),
+
   listLeads: (token: string, params?: Record<string, string>) => {
     const qs = params ? `?${new URLSearchParams(params).toString()}` : '';
     return request<{
